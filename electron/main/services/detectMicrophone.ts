@@ -160,7 +160,6 @@ function isMicInUseMacOS() {
         
         micWatcherProc.stdout.on('data', (data) => {
             const msg = data.toString().trim();
-            console.log(msg);
             if (msg === "1" || msg === 1)  {
                 resolve(true)
                 return;
@@ -249,13 +248,13 @@ async function checkCallStatus() {
       console.log('📞 Call detected - microphone in use');
       createOverlay();
       // Start the timeout
-      overlayTimeoutRemaining = 10000; // 10 seconds
-      overlayTimeoutStartTime = Date.now();
-      overlayTimeout = setTimeout(() => {
-        overlayWindow?.close();
-        overlayTimeout = null;
-        overlayTimeoutRemaining = 10000; // Reset
-      }, overlayTimeoutRemaining);
+    //   overlayTimeoutRemaining = 10000; // 10 seconds
+    //   overlayTimeoutStartTime = Date.now();
+    //   overlayTimeout = setTimeout(() => {
+    //     overlayWindow?.close();
+    //     overlayTimeout = null;
+    //     overlayTimeoutRemaining = 10000; // Reset
+    //   }, overlayTimeoutRemaining);
     } else if (!micInUse && isCurrentlyInCall) {
       // Call ended - reset state so overlay can be opened again
       isCurrentlyInCall = false;

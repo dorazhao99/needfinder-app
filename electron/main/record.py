@@ -4,6 +4,7 @@ from __future__ import annotations
 ###############################################################################
 
 # — Standard library —
+import argparse
 import base64
 import logging
 import os
@@ -59,10 +60,11 @@ def _get_visible_windows() -> List[tuple[dict, float]]:
     """
     _, _, _, gmax_y = _get_global_bounds()
 
-    opts = (
-        Quartz.kCGWindowListOptionOnScreenOnly
-        | Quartz.kCGWindowListOptionIncludingWindow
-    )
+    # opts = (
+    #     Quartz.kCGWindowListOptionOnScreenOnly
+    #     | Quartz.kCGWindowListOptionIncludingWindow
+    # )
+    opts = Quartz.kCGWindowListOptionAll
     wins = Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
 
     occupied = None  # running union of opaque regions above the current window
@@ -93,6 +95,9 @@ def _get_visible_windows() -> List[tuple[dict, float]]:
             ratio = visible.area / poly.area
             result.append((info, ratio))
             occupied = poly if occupied is None else unary_union([occupied, poly])
+            window_name = info.get("kCGWindowName", "Unknown")
+            print(f"  - Owner: {owner}, Window: {window_name}, Visible: {ratio:.2%}", f"Bounds: {x}, {y}, {w}, {h}")
+        print("--------------------------------")
 
     return result
 
@@ -100,6 +105,7 @@ def _get_visible_windows() -> List[tuple[dict, float]]:
 def _is_app_visible(names: Iterable[str]) -> bool:
     """Return *True* if **any** window from *names* is at least partially visible."""
     targets = set(names)
+    print("Visible windows:", _get_visible_windows())
     return any(
         info.get("kCGWindowOwnerName", "") in targets and ratio > 0
         for info, ratio in _get_visible_windows()
@@ -141,7 +147,7 @@ class Screen():
     # ─────────────────────────────── construction
     def __init__(
         self,
-        screenshots_dir: str = "~/.cache/record/screenshots",
+        screenshots_dir: str = "~/.cache/recordr/screenshots",
         skip_when_visible: Optional[str | list[str]] = None,
         debug: bool = False,
     ) -> None:
@@ -218,6 +224,7 @@ class Screen():
         Returns:
             str: Path to the saved image.
         """
+        _get_visible_windows()
         ts   = f"{time.time():.5f}"
         path = os.path.join(self.screens_dir, f"{ts}_{tag}.jpg")
         await asyncio.to_thread(
@@ -406,7 +413,7 @@ async def run_screen_observer(
         print("Screen observer stopped.")
 
 
-def main() -> None:
+def main(file_dir: str) -> None:
     """Main entry point for running the screen observer."""
     import signal
     
@@ -428,7 +435,7 @@ def main() -> None:
     
     try:
         # Run the screen observer
-        task = loop.create_task(run_screen_observer(debug=True))
+        task = loop.create_task(run_screen_observer(debug=True, screenshots_dir=file_dir))
         loop.run_until_complete(task)
     except (KeyboardInterrupt, asyncio.CancelledError):
         print("\nShutting down screen observer...")
@@ -444,4 +451,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Record screen activity')
+    parser.add_argument('--file-dir', type=str, required=True, help='Directory to store screenshots')
+    args = parser.parse_args()
+    main(file_dir=args.file_dir)

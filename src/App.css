@@ -1,8 +1,8 @@
 #root {
-  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
+  width: 100vw;
+  height: 100vh;
 }
 
 .logo-box {
@@ -49,4 +49,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.main-layout {
+  display: flex;
+  margin-top: 32px; /* Account for fixed TitleBar */
+  height: calc(100vh - 32px);
+  width: 100%;
+  background: linear-gradient(160deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  position: relative;
+  overflow: hidden;
 }

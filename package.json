@@ -1,19 +1,21 @@
 {
-  "name": "electron-vite-react",
+  "name": "Lilac",
   "version": "2.2.0",
   "main": "dist-electron/main/index.js",
   "build": {
     "appId": "com.yourcompany.yourapp",
-        "mac": {
-          "category": "public.app-category.productivity"
-        },
-        "extraResources": [
-          {
-            "from": "assets/macos/",
-            "to": "micwatcher",
-            "filter": ["MicWatcher"]
-          }
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "extraResources": [
+      {
+        "from": "assets/macos/",
+        "to": "micwatcher",
+        "filter": [
+          "MicWatcher"
         ]
+      }
+    ]
   },
   "description": "Electron Vite React boilerplate.",
   "author": "Dorothy Zhao",
@@ -28,6 +30,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
+    "rebuild": "electron-rebuild",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
@@ -35,9 +38,12 @@
   "dependencies": {
     "@mantine/core": "^8.3.9",
     "@mantine/hooks": "^8.3.9",
+    "@tabler/icons-react": "^3.35.0",
+    "better-sqlite3": "^12.5.0",
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@playwright/test": "^1.48.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

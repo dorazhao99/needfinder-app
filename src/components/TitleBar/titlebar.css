@@ -1,0 +1,36 @@
+.titlebar {
+    -webkit-app-region: drag;    /* <-- tells Electron this region drags the window */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    padding-left: 12px; /* Start from left, intersecting with traffic lights */
+    user-select: none;
+    background-color: "red"; 
+    z-index: 1000;
+  }
+  
+  /* Buttons / interactive elements inside must be non-draggable */
+  .titlebar-buttons,
+  .titlebar-btn {
+    -webkit-app-region: no-drag;
+  }
+  
+  .titlebar-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: inherit;
+    transition: opacity 0.2s;
+  }
+
+  .titlebar-btn:hover {
+    opacity: 0.7;
+  }

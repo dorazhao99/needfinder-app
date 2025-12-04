@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
+import { NavbarSimple } from '@/components/NavBar'
 import { Button, Card, Container, Loader, Center } from '@mantine/core'
 
 import UpdateElectron from '@/components/update'
 import Welcome from '@/components/Welcome'
 import Overlay from '@/components/Overlay'
 import './App.css'
+import { TitleBar } from './components/TitleBar'
+import Recorder from './components/Recorder'
 
+interface User {
+  name: string
+  file_dir: string
+}
 function App() {
   const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     // Check if this is the overlay window
@@ -20,18 +27,17 @@ function App() {
   }, [])
 
   const checkSetup = async () => {
-    const setupComplete = await window.electronAPI.checkSetup()
-    setIsSetupComplete(setupComplete)
-  }
-
-  const handleStartRecording = () => {
-    window.electronAPI.runPython()
-    setIsRecording(true)
-  }
-
-  const pauseRecording = () => {
-    window.electronAPI.stopPython()
-    setIsRecording(false)
+    const setupComplete = await window.electronAPI.getUser() 
+    if (setupComplete == null) {
+      setIsSetupComplete(false)
+    } else {
+      let selUser = {
+        name: setupComplete.name,
+        file_dir: setupComplete.file_dir,
+      }
+      setUser(selUser)
+      setIsSetupComplete(true)
+    }
   }
 
   // Check if this is the overlay window
@@ -43,42 +49,34 @@ function App() {
   // Show loading state while checking setup
   if (isSetupComplete === null) {
     return (
-      <Center style={{ minHeight: '100vh' }}>
-        <Loader size="lg" />
-      </Center>
+      <>
+        <TitleBar />
+        <Center style={{ minHeight: '100vh', paddingTop: '32px' }}>
+          <Loader size="lg" />
+        </Center>
+      </>
     )
   }
 
   // Show welcome page if setup is not complete
   if (!isSetupComplete) {
-    return <Welcome onComplete={checkSetup} />
+    return (
+      <>
+        <TitleBar />
+        <Welcome setIsSetupComplete={setIsSetupComplete}/>
+      </>
+    )
+  } else {
+    return (
+      <>
+        <TitleBar />
+        <div className="main-layout">
+          <NavbarSimple />
+          <Recorder userInfo={user} />
+        </div>
+      </>
+    )
   }
-
-  // Show main app
-  return (
-    <Container size="md" py="xl">
-      <div className='App'>
-        <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
-          <Button
-            onClick={handleStartRecording}
-            color={"blue"}
-            size="lg"
-            fullWidth
-          >
-            {"▶ Play"}
-          </Button>
-          <Button
-            onClick={pauseRecording}
-            color={"red"}
-            size="lg"
-            fullWidth
-          >
-            {"⏸ Pause"}
-          </Button>
-        </Card>
-      </div>
-    </Container>
-  )
 }
 
 export default App

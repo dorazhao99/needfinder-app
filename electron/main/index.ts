@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog } from 'electron'
+import { app, BrowserWindow, shell, Tray, Menu, nativeImage } from 'electron'
 import { spawn, ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -7,9 +7,10 @@ import os from 'node:os'
 import fs from 'node:fs'
 import { update } from './update'
 import { startRecording, stopRecording } from './services/recording'
-import { startMonitoring, stopMonitoring, closeOverlay, pauseOverlayTimeout, resumeOverlayTimeout } from './services/detectMicrophone'
-
-const require = createRequire(import.meta.url)
+import { startMonitoring } from './services/detectMicrophone'
+import { initDatabase } from './db/db'
+import './ipc/ipc'
+import './ipc/db'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -39,47 +40,20 @@ if (!app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
-let pythonProcess: ChildProcess | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
-// Preferences file path
-const getPreferencesPath = () => {
-  const userDataPath = app.getPath('userData')
-  return path.join(userDataPath, 'preferences.json')
-}
 
-// Read preferences
-const readPreferences = () => {
-  try {
-    const prefsPath = getPreferencesPath()
-    if (fs.existsSync(prefsPath)) {
-      const data = fs.readFileSync(prefsPath, 'utf-8')
-      return JSON.parse(data)
-    }
-  } catch (error) {
-    console.error('Error reading preferences:', error)
-  }
-  return null
-}
-
-// Write preferences
-const writePreferences = (prefs: { name: string; screenshotDirectory: string }) => {
-  try {
-    const prefsPath = getPreferencesPath()
-    fs.writeFileSync(prefsPath, JSON.stringify(prefs, null, 2), 'utf-8')
-    return true
-  } catch (error) {
-    console.error('Error writing preferences:', error)
-    return false
-  }
-}
 
 async function createWindow() {
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    width: 1200,
+    height: 900,
     frame: false,
+    titleBarStyle: 'hiddenInset', // or similar
+    show: true, // Explicitly show the window
     webPreferences: {
       preload,
     },
@@ -92,6 +66,10 @@ async function createWindow() {
   } else {
     win.loadFile(indexHtml)
   }
+  
+  // Ensure window is visible
+  win.show()
+  win.focus()
 
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
@@ -165,6 +143,7 @@ function createTray() {
 }
 
 app.whenReady().then(async() => {
+  initDatabase();
   createWindow();
   createTray();
   startMonitoring();
@@ -192,76 +171,5 @@ app.on('activate', () => {
   }
 })
 
-// New window example arg: new windows url
-ipcMain.handle('open-win', (_, arg) => {
-  const childWindow = new BrowserWindow({
-    webPreferences: {
-      preload,
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
-  } else {
-    childWindow.loadFile(indexHtml, { hash: arg })
-  }
-})
 
 
-
-// Listen for button click from renderer
-ipcMain.on("run-python", (event) => {
-  startRecording();
-});
-
-// Listen for stop request from renderer
-ipcMain.on("stop-python", (event) => {
-  stopRecording();
-  event.reply("python-stopped");
-});
-
-// Check if setup is complete
-ipcMain.handle("check-setup", () => {
-  const prefs = readPreferences()
-  return prefs !== null && prefs.name && prefs.screenshotDirectory
-})
-
-// Get preferences
-ipcMain.handle("get-preferences", () => {
-  return readPreferences()
-})
-
-// Save preferences
-ipcMain.handle("save-preferences", (_, prefs: { name: string; screenshotDirectory: string }) => {
-  return writePreferences(prefs)
-})
-
-// Open directory picker
-ipcMain.handle("select-directory", async () => {
-  const result = await dialog.showOpenDialog(win!, {
-    properties: ['openDirectory'],
-    title: 'Select Screenshot Directory'
-  })
-  
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0]
-  }
-  return null
-})
-
-// Close overlay window
-ipcMain.on("close-overlay", () => {
-  closeOverlay();
-})
-
-// Pause overlay timeout
-ipcMain.on("pause-overlay-timeout", () => {
-  pauseOverlayTimeout();
-})
-
-// Resume overlay timeout
-ipcMain.on("resume-overlay-timeout", () => {
-  resumeOverlayTimeout();
-})

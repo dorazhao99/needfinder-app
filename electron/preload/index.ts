@@ -6,9 +6,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   runPython: () => ipcRenderer.send("run-python"),
   stopPython: () => ipcRenderer.send("stop-python"),
   checkSetup: () => ipcRenderer.invoke("check-setup"),
-  getPreferences: () => ipcRenderer.invoke("get-preferences"),
-  savePreferences: (prefs: { name: string; screenshotDirectory: string }) => 
-    ipcRenderer.invoke("save-preferences", prefs),
+  getUser: () => ipcRenderer.invoke("user:get"),
+  saveUser: (user: { name: string; file_dir: string }) => ipcRenderer.invoke("user:save", user),
   selectDirectory: () => ipcRenderer.invoke("select-directory"),
   closeOverlay: () => ipcRenderer.send("close-overlay"),
   pauseOverlayTimeout: () => ipcRenderer.send("pause-overlay-timeout"),

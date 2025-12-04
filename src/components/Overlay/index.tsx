@@ -162,9 +162,6 @@ export default function Overlay() {
               </Button>
             </div>
           </div>
-          <div className="overlay-progress-container">
-            <div ref={progressBarRef} className="overlay-progress-bar"></div>
-          </div>
         </div>
       </div>
     </div>

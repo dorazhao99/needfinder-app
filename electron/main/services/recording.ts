@@ -1,13 +1,38 @@
+import { app } from 'electron'
 import path from 'node:path'
+import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { ChildProcess } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 let pythonProcess: ChildProcess | null = null;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_ROOT = path.join(__dirname, '../..')
+
+function getRecording() {
+    if (!app.isPackaged) {
+       // dev: try dist-electron first (where vite plugin copies it), then fallback to source
+       const distPath = path.join(APP_ROOT, 'dist-electron', 'main', 'record.py')
+       const sourcePath = path.join(APP_ROOT, 'electron', 'main', 'record.py')
+       
+       // Check if file exists in dist-electron (built by vite plugin)
+       if (fs.existsSync(distPath)) {
+         return distPath
+       }
+       // Fallback to source location
+       return sourcePath
+      }
+    
+      // prod: inside the .app Resources
+      return path.join(process.resourcesPath, 'micwatcher', 'MicWatcher');
+  }
 
 export function startRecording() {
     // Stop existing process if running
     if (!pythonProcess) {
-      const scriptPath = path.join(__dirname, "record.py");
+      const scriptPath = getRecording();
+      console.log(`Starting Python script from: ${scriptPath}`);
       const scriptDir = path.dirname(scriptPath);
       
       const uvCmd = "uv"
