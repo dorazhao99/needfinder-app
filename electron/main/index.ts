@@ -7,7 +7,8 @@ import os from 'node:os'
 import fs from 'node:fs'
 import { update } from './update'
 import { startRecording, stopRecording } from './services/recording'
-import { startMonitoring, stopMonitoring, requestMicrophonePermission } from './services/detectMicrophone'
+import { startMonitoring, stopMonitoring, closeOverlay, pauseOverlayTimeout, resumeOverlayTimeout } from './services/detectMicrophone'
+
 const require = createRequire(import.meta.url)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -166,12 +167,7 @@ function createTray() {
 app.whenReady().then(async() => {
   createWindow();
   createTray();
-  const hasPermission = await requestMicrophonePermission();
-  if (hasPermission) {
-    startMonitoring();
-  } else {
-    console.warn('Microphone permission not granted. Call detection disabled.');
-  }
+  startMonitoring();
 })
 
 app.on('window-all-closed', () => {
@@ -253,4 +249,19 @@ ipcMain.handle("select-directory", async () => {
     return result.filePaths[0]
   }
   return null
+})
+
+// Close overlay window
+ipcMain.on("close-overlay", () => {
+  closeOverlay();
+})
+
+// Pause overlay timeout
+ipcMain.on("pause-overlay-timeout", () => {
+  pauseOverlayTimeout();
+})
+
+// Resume overlay timeout
+ipcMain.on("resume-overlay-timeout", () => {
+  resumeOverlayTimeout();
 })

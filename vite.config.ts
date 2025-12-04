@@ -1,33 +1,32 @@
-import { rmSync, copyFileSync, mkdirSync } from 'node:fs'
+import { rmSync, cpSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import pkg from './package.json'
 
-// Plugin to copy record.py to dist directory
-function copyRecordPy(): Plugin {
-  const copyFile = () => {
-    const src = path.join(__dirname, 'electron/main/record.py')
-    const dest = path.join(__dirname, 'dist-electron/main/record.py')
+// Plugin to copy electron/main folder to dist-electron/main
+function copyMainFolder(): Plugin {
+  const copyFolder = () => {
+    const src = path.join(__dirname, 'electron/main')
+    const dest = path.join(__dirname, 'dist-electron/main')
     try {
-      mkdirSync(path.dirname(dest), { recursive: true })
-      copyFileSync(src, dest)
-      console.log('Copied record.py to dist-electron/main/')
+      cpSync(src, dest, { recursive: true })
+      console.log('Copied electron/main folder to dist-electron/main/')
     } catch (error) {
-      console.error('Failed to copy record.py:', error)
+      console.error('Failed to copy electron/main folder:', error)
     }
   }
 
   return {
-    name: 'copy-record-py',
+    name: 'copy-main-folder',
     buildStart() {
       // Copy on build start to ensure it's available early
-      copyFile()
+      copyFolder()
     },
     closeBundle() {
       // Copy after bundle is closed to ensure it's there after build
-      copyFile()
+      copyFolder()
     },
   }
 }
@@ -48,7 +47,7 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       react(),
-      copyRecordPy(),
+      copyMainFolder(),
       electron({
         main: {
           // Shortcut of `build.lib.entry`

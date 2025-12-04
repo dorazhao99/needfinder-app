@@ -9,6 +9,9 @@ interface Window {
     checkSetup: () => Promise<boolean>,
     getPreferences: () => Promise<{ name: string; screenshotDirectory: string } | null>,
     savePreferences: (prefs: { name: string; screenshotDirectory: string }) => Promise<boolean>,
-    selectDirectory: () => Promise<string | null>
+    selectDirectory: () => Promise<string | null>,
+    closeOverlay: () => void,
+    pauseOverlayTimeout: () => void,
+    resumeOverlayTimeout: () => void
   }
 }

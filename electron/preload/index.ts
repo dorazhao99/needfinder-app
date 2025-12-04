@@ -9,7 +9,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getPreferences: () => ipcRenderer.invoke("get-preferences"),
   savePreferences: (prefs: { name: string; screenshotDirectory: string }) => 
     ipcRenderer.invoke("save-preferences", prefs),
-  selectDirectory: () => ipcRenderer.invoke("select-directory")
+  selectDirectory: () => ipcRenderer.invoke("select-directory"),
+  closeOverlay: () => ipcRenderer.send("close-overlay"),
+  pauseOverlayTimeout: () => ipcRenderer.send("pause-overlay-timeout"),
+  resumeOverlayTimeout: () => ipcRenderer.send("resume-overlay-timeout")
 });
 
 

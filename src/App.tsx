@@ -3,6 +3,7 @@ import { Button, Card, Container, Loader, Center } from '@mantine/core'
 
 import UpdateElectron from '@/components/update'
 import Welcome from '@/components/Welcome'
+import Overlay from '@/components/Overlay'
 import './App.css'
 
 function App() {
@@ -10,6 +11,11 @@ function App() {
   const [isRecording, setIsRecording] = useState(false)
 
   useEffect(() => {
+    // Check if this is the overlay window
+    const hash = window.location.hash
+    if (hash === '#overlay') {
+      return // Don't run setup check for overlay window
+    }
     checkSetup()
   }, [])
 
@@ -26,6 +32,12 @@ function App() {
   const pauseRecording = () => {
     window.electronAPI.stopPython()
     setIsRecording(false)
+  }
+
+  // Check if this is the overlay window
+  const hash = window.location.hash
+  if (hash === '#overlay') {
+    return <Overlay />
   }
 
   // Show loading state while checking setup

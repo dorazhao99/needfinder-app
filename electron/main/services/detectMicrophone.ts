@@ -1,10 +1,119 @@
 import {app, BrowserWindow, ipcMain, systemPreferences } from 'electron';
-import { exec } from 'node:child_process';
+import { screen } from 'electron';
+import { spawn, exec } from 'node:child_process';
+import path from 'node:path';
 import os from 'node:os';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url'
 
-let mainWindow;
+
 let micMonitoringInterval: NodeJS.Timeout | null = null;
 let isCurrentlyInCall = false;
+let overlayWindow: BrowserWindow | null = null;
+let overlayTimeout: NodeJS.Timeout | null = null;
+let overlayTimeoutStartTime: number = 0;
+let overlayTimeoutRemaining: number = 10000; // 10 seconds
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_ROOT = path.join(__dirname, '../..')
+const RENDERER_DIST = path.join(APP_ROOT, 'dist')
+const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+const preload = path.join(__dirname, '../preload/index.mjs')
+const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+// ============================================
+// CREATE OVERLAY - CROSS PLATFORM
+// ============================================
+function createOverlay() {
+    // Close existing overlay if any
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.close();
+    }
+    
+    const { width } = screen.getPrimaryDisplay().workAreaSize;
+    const overlayWidth = 350;
+    const overlayHeight = 90;
+    const padding = 20;
+  
+    overlayWindow = new BrowserWindow({
+        width: overlayWidth,
+        height: overlayHeight,
+        x: width - overlayWidth - padding,  // Position at top right
+        y: padding,                          // Top padding
+        frame: false,             // no OS chrome
+        transparent: true,        // allows HTML to show through
+        backgroundColor: '#00000000', // transparent background (ARGB format)
+        hasShadow: false,         // removes system drop-shadow
+        visualEffectState: 'active', // Use 'active' for proper vibrancy/blur effects
+        alwaysOnTop: true,
+        resizable: false,
+        fullscreenable: false,
+        skipTaskbar: true,
+        focusable: true,          // you want to type into it
+        webPreferences: {
+          preload,
+          nodeIntegration: false,
+          contextIsolation: true
+        }
+    });
+  
+    // Load React app with overlay route
+    if (VITE_DEV_SERVER_URL) {
+        console.log(`${VITE_DEV_SERVER_URL}#overlay`);
+      overlayWindow.loadURL(`${VITE_DEV_SERVER_URL}#overlay`)
+    } else {
+      overlayWindow.loadFile(indexHtml, { hash: 'overlay' })
+    }
+    
+    // Pause timeout when window gains focus, resume when it loses focus
+    overlayWindow.on('focus', () => {
+      pauseOverlayTimeout();
+    });
+    
+    overlayWindow.on('blur', () => {
+      resumeOverlayTimeout();
+    });
+    
+    // Clean up reference when window is closed
+    overlayWindow.on('closed', () => {
+      overlayWindow = null;
+      // Reset call status so overlay can be opened again
+    });
+    
+    return overlayWindow;
+  }
+
+export function closeOverlay() {
+  if (overlayTimeout) {
+    clearTimeout(overlayTimeout);
+    overlayTimeout = null;
+  }
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.close();
+    overlayWindow = null;
+  }
+  overlayTimeoutRemaining = 10000; // Reset for next time
+}
+
+export function pauseOverlayTimeout() {
+  if (overlayTimeout && overlayWindow && !overlayWindow.isDestroyed()) {
+    const elapsed = Date.now() - overlayTimeoutStartTime;
+    overlayTimeoutRemaining = overlayTimeoutRemaining - elapsed;
+    clearTimeout(overlayTimeout);
+    overlayTimeout = null;
+  }
+}
+
+export function resumeOverlayTimeout() {
+  if (!overlayTimeout && overlayWindow && !overlayWindow.isDestroyed() && overlayTimeoutRemaining > 0) {
+    overlayTimeoutStartTime = Date.now();
+    overlayTimeout = setTimeout(() => {
+      overlayWindow?.close();
+      overlayTimeout = null;
+      overlayTimeoutRemaining = 10000; // Reset
+    }, overlayTimeoutRemaining);
+  }
+}
 
 // ============================================
 // MICROPHONE DETECTION - CROSS PLATFORM
@@ -24,25 +133,52 @@ async function isMicrophoneInUse() {
   return false;
 }
 
-// macOS: Check for processes using audio input
+function getMicWatcherPath() {
+  if (!app.isPackaged) {
+     // dev: try dist-electron first (where vite plugin copies it), then fallback to source
+     const distPath = path.join(APP_ROOT, 'dist-electron', 'assets', 'micwatcher', 'MicWatcher')
+     const sourcePath = path.join(APP_ROOT, 'assets', 'macos', 'MicWatcher')
+     
+     // Check if file exists in dist-electron (built by vite plugin)
+     if (fs.existsSync(distPath)) {
+       return distPath
+     }
+     // Fallback to source location
+     return sourcePath
+    }
+  
+    // prod: inside the .app Resources
+    return path.join(process.resourcesPath, 'micwatcher', 'MicWatcher');
+}
+
+let micWatcherProc = null;
+
 function isMicInUseMacOS() {
-  return new Promise((resolve) => {
-    // Method 1: Check if any audio input device is active
-    exec('system_profiler SPAudioDataType', (err, stdout) => {
-      if (err) {
-        resolve(false);
+    return new Promise((resolve) => {
+        const binPath = getMicWatcherPath();
+        micWatcherProc = spawn(binPath); 
+        
+        micWatcherProc.stdout.on('data', (data) => {
+            const msg = data.toString().trim();
+            console.log(msg);
+            if (msg === "1" || msg === 1)  {
+                resolve(true)
+                return;
+            };
+            if (msg === "0" || msg === 0) {
+                resolve(false)
+                return;
+            }
+        });
+
+        micWatcherProc.on('error', (err) => {
+            console.error('MicWatcher failed:', err);
+            resolve(false);
+            return;
+        });
+
         return;
-      }
-      
-      // Look for "Input Source: Built-in Microphone" or similar
-      console.log(stdout);
-      const hasActiveInput = stdout.includes('Input Source');
-      resolve(hasActiveInput);
     });
-    
-    // Method 2: You can also use lsof to check which processes have audio devices open
-    // exec('lsof | grep "CoreAudio"', (err, stdout) => { ... });
-  });
 }
 
 // Windows: Check audio recording processes
@@ -107,12 +243,28 @@ function isMicInUseLinux() {
 async function checkCallStatus() {
   try {
     const micInUse = await isMicrophoneInUse();
-    
     if (micInUse && !isCurrentlyInCall) {
       // Call started
       isCurrentlyInCall = true;
       console.log('📞 Call detected - microphone in use');
-    }
+      createOverlay();
+      // Start the timeout
+      overlayTimeoutRemaining = 10000; // 10 seconds
+      overlayTimeoutStartTime = Date.now();
+      overlayTimeout = setTimeout(() => {
+        overlayWindow?.close();
+        overlayTimeout = null;
+        overlayTimeoutRemaining = 10000; // Reset
+      }, overlayTimeoutRemaining);
+    } else if (!micInUse && isCurrentlyInCall) {
+      // Call ended - reset state so overlay can be opened again
+      isCurrentlyInCall = false;
+      // Close overlay if it's still open
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.close();
+        overlayWindow = null;
+      }
+    } 
   } catch (error) {
     console.error('Error checking call status:', error);
   }
@@ -148,8 +300,8 @@ export async function requestMicrophonePermission() {
 // ============================================
 
 export function startMonitoring() {
-  // Check every 3 seconds
-  micMonitoringInterval = setInterval(checkCallStatus, 3000);
+  // Check every minute
+  micMonitoringInterval = setInterval(checkCallStatus, 5000);
   
   // Initial check
   checkCallStatus();

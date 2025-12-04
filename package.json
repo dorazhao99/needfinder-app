@@ -2,8 +2,21 @@
   "name": "electron-vite-react",
   "version": "2.2.0",
   "main": "dist-electron/main/index.js",
+  "build": {
+    "appId": "com.yourcompany.yourapp",
+        "mac": {
+          "category": "public.app-category.productivity"
+        },
+        "extraResources": [
+          {
+            "from": "assets/macos/",
+            "to": "micwatcher",
+            "filter": ["MicWatcher"]
+          }
+        ]
+  },
   "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "author": "Dorothy Zhao",
   "license": "MIT",
   "private": true,
   "debug": {
