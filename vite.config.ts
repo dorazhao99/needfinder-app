@@ -1,9 +1,36 @@
-import { rmSync } from 'node:fs'
+import { rmSync, copyFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import { defineConfig } from 'vite'
+import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import pkg from './package.json'
+
+// Plugin to copy record.py to dist directory
+function copyRecordPy(): Plugin {
+  const copyFile = () => {
+    const src = path.join(__dirname, 'electron/main/record.py')
+    const dest = path.join(__dirname, 'dist-electron/main/record.py')
+    try {
+      mkdirSync(path.dirname(dest), { recursive: true })
+      copyFileSync(src, dest)
+      console.log('Copied record.py to dist-electron/main/')
+    } catch (error) {
+      console.error('Failed to copy record.py:', error)
+    }
+  }
+
+  return {
+    name: 'copy-record-py',
+    buildStart() {
+      // Copy on build start to ensure it's available early
+      copyFile()
+    },
+    closeBundle() {
+      // Copy after bundle is closed to ensure it's there after build
+      copyFile()
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -21,6 +48,7 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       react(),
+      copyRecordPy(),
       electron({
         main: {
           // Shortcut of `build.lib.entry`

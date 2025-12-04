@@ -1,0 +1,447 @@
+from __future__ import annotations
+###############################################################################
+# Imports                                                                     #
+###############################################################################
+
+# — Standard library —
+import base64
+import logging
+import os
+import time
+from collections import deque
+from typing import Any, Dict, Iterable, List, Optional
+
+import asyncio
+
+# — Third-party —
+import mss
+import Quartz
+from PIL import Image
+from pynput import mouse           # still synchronous
+from shapely.geometry import box
+from shapely.ops import unary_union
+
+print("record.py loaded")
+
+###############################################################################
+# Window‑geometry helpers                                                     #
+###############################################################################
+
+
+def _get_global_bounds() -> tuple[float, float, float, float]:
+    """Return a bounding box enclosing **all** physical displays.
+
+    Returns
+    -------
+    (min_x, min_y, max_x, max_y) tuple in Quartz global coordinates.
+    """
+    err, ids, cnt = Quartz.CGGetActiveDisplayList(16, None, None)
+    if err != Quartz.kCGErrorSuccess:  # pragma: no cover (defensive)
+        raise OSError(f"CGGetActiveDisplayList failed: {err}")
+
+    min_x = min_y = float("inf")
+    max_x = max_y = -float("inf")
+    for did in ids[:cnt]:
+        r = Quartz.CGDisplayBounds(did)
+        x0, y0 = r.origin.x, r.origin.y
+        x1, y1 = x0 + r.size.width, y0 + r.size.height
+        min_x, min_y = min(min_x, x0), min(min_y, y0)
+        max_x, max_y = max(max_x, x1), max(max_y, y1)
+    return min_x, min_y, max_x, max_y
+
+
+def _get_visible_windows() -> List[tuple[dict, float]]:
+    """List *onscreen* windows with their visible‑area ratio.
+
+    Each tuple is ``(window_info_dict, visible_ratio)`` where *visible_ratio*
+    is in ``[0.0, 1.0]``.  Internal system windows (Dock, WindowServer, …) are
+    ignored.
+    """
+    _, _, _, gmax_y = _get_global_bounds()
+
+    opts = (
+        Quartz.kCGWindowListOptionOnScreenOnly
+        | Quartz.kCGWindowListOptionIncludingWindow
+    )
+    wins = Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
+
+    occupied = None  # running union of opaque regions above the current window
+    result: list[tuple[dict, float]] = []
+
+    for info in wins:
+        owner = info.get("kCGWindowOwnerName", "")
+        if owner in ("Dock", "WindowServer", "Window Server"):
+            continue
+
+        bounds = info.get("kCGWindowBounds", {})
+        x, y, w, h = (
+            bounds.get("X", 0),
+            bounds.get("Y", 0),
+            bounds.get("Width", 0),
+            bounds.get("Height", 0),
+        )
+        if w <= 0 or h <= 0:
+            continue  # hidden or minimised
+
+        inv_y = gmax_y - y - h  # Quartz→Shapely Y‑flip
+        poly = box(x, inv_y, x + w, inv_y + h)
+        if poly.is_empty:
+            continue
+
+        visible = poly if occupied is None else poly.difference(occupied)
+        if not visible.is_empty:
+            ratio = visible.area / poly.area
+            result.append((info, ratio))
+            occupied = poly if occupied is None else unary_union([occupied, poly])
+
+    return result
+
+
+def _is_app_visible(names: Iterable[str]) -> bool:
+    """Return *True* if **any** window from *names* is at least partially visible."""
+    targets = set(names)
+    return any(
+        info.get("kCGWindowOwnerName", "") in targets and ratio > 0
+        for info, ratio in _get_visible_windows()
+    )
+
+###############################################################################
+# Screen observer                                                             #
+###############################################################################
+
+class Screen():
+    """Observer that captures and analyzes screen content around user interactions.
+
+    This observer captures screenshots before and after user interactions (mouse movements,
+    clicks, and scrolls) and uses GPT-4 Vision to analyze the content. It can also take
+    periodic screenshots and skip captures when certain applications are visible.
+
+    Args:
+        screenshots_dir (str, optional): Directory to store screenshots. Defaults to "~/.cache/gum/screenshots".
+        skip_when_visible (Optional[str | list[str]], optional): Application names to skip when visible.
+            Defaults to None.
+        transcription_prompt (Optional[str], optional): Custom prompt for transcribing screenshots.
+            Defaults to None.
+        summary_prompt (Optional[str], optional): Custom prompt for summarizing screenshots.
+            Defaults to None.
+        model_name (str, optional): GPT model to use for vision analysis. Defaults to "gpt-4o-mini".
+        history_k (int, optional): Number of recent screenshots to keep in history. Defaults to 10.
+        debug (bool, optional): Enable debug logging. Defaults to False.
+
+    Attributes:
+        _CAPTURE_FPS (int): Frames per second for screen capture.
+        _DEBOUNCE_SEC (int): Seconds to wait before processing an interaction.
+        _MON_START (int): Index of first real display in mss.
+    """
+
+    _CAPTURE_FPS: int = 10
+    _DEBOUNCE_SEC: int = 2
+    _MON_START: int = 1     # first real display in mss
+
+    # ─────────────────────────────── construction
+    def __init__(
+        self,
+        screenshots_dir: str = "~/.cache/record/screenshots",
+        skip_when_visible: Optional[str | list[str]] = None,
+        debug: bool = False,
+    ) -> None:
+        """Initialize the Screen observer.
+        
+        Args:
+            screenshots_dir (str, optional): Directory to store screenshots. Defaults to "~/.cache/gum/screenshots".
+            skip_when_visible (Optional[str | list[str]], optional): Application names to skip when visible.
+                Defaults to None.
+            transcription_prompt (Optional[str], optional): Custom prompt for transcribing screenshots.
+                Defaults to None.
+            summary_prompt (Optional[str], optional): Custom prompt for summarizing screenshots.
+                Defaults to None.
+            model_name (str, optional): GPT model to use for vision analysis. Defaults to "gpt-4o-mini".
+            history_k (int, optional): Number of recent screenshots to keep in history. Defaults to 10.
+            debug (bool, optional): Enable debug logging. Defaults to False.
+        """
+        self.screens_dir = os.path.abspath(os.path.expanduser(screenshots_dir))
+        os.makedirs(self.screens_dir, exist_ok=True)
+
+        self._guard = {skip_when_visible} if isinstance(skip_when_visible, str) else set(skip_when_visible or [])
+
+
+        self.debug = debug
+
+        # state shared with worker
+        self._frames: Dict[int, Any] = {}
+        self._frame_lock = asyncio.Lock()
+
+        self._pending_event: Optional[dict] = None
+        self._debounce_handle: Optional[asyncio.TimerHandle] = None
+        self._running: bool = False
+        self._worker_task: Optional[asyncio.Task] = None
+
+    # ─────────────────────────────── tiny sync helpers
+    @staticmethod
+    def _mon_for(x: float, y: float, mons: list[dict]) -> Optional[int]:
+        """Find which monitor contains the given coordinates.
+        
+        Args:
+            x (float): X coordinate.
+            y (float): Y coordinate.
+            mons (list[dict]): List of monitor information dictionaries.
+            
+        Returns:
+            Optional[int]: Monitor index if found, None otherwise.
+        """
+        for idx, m in enumerate(mons, 1):
+            if m["left"] <= x < m["left"] + m["width"] and m["top"] <= y < m["top"] + m["height"]:
+                return idx
+        return None
+
+    @staticmethod
+    def _encode_image(img_path: str) -> str:
+        """Encode an image file as base64.
+        
+        Args:
+            img_path (str): Path to the image file.
+            
+        Returns:
+            str: Base64 encoded image data.
+        """
+        with open(img_path, "rb") as fh:
+            return base64.b64encode(fh.read()).decode()
+
+    # ─────────────────────────────── I/O helpers
+    async def _save_frame(self, frame, tag: str) -> str:
+        """Save a frame as a JPEG image.
+        
+        Args:
+            frame: Frame data to save.
+            tag (str): Tag to include in the filename.
+            
+        Returns:
+            str: Path to the saved image.
+        """
+        ts   = f"{time.time():.5f}"
+        path = os.path.join(self.screens_dir, f"{ts}_{tag}.jpg")
+        await asyncio.to_thread(
+            Image.frombytes("RGB", (frame.width, frame.height), frame.rgb).save,
+            path,
+            "JPEG",
+            quality=70,
+        )
+        return path
+
+
+    # ─────────────────────────────── skip guard
+    def _skip(self) -> bool:
+        """Check if capture should be skipped based on visible applications.
+        
+        Returns:
+            bool: True if capture should be skipped, False otherwise.
+        """
+        return _is_app_visible(self._guard) if self._guard else False
+
+    # ─────────────────────────────── start/stop methods
+    def start(self) -> None:
+        """Start the screen observer worker."""
+        if self._running:
+            return
+        self._running = True
+        self._worker_task = asyncio.create_task(self._worker())
+
+    def stop(self) -> None:
+        """Stop the screen observer worker."""
+        self._running = False
+        if self._worker_task:
+            self._worker_task.cancel()
+
+    async def wait(self) -> None:
+        """Wait for the worker to complete."""
+        if self._worker_task:
+            try:
+                await self._worker_task
+            except asyncio.CancelledError:
+                pass
+
+    # ─────────────────────────────── main async worker
+    async def _worker(self) -> None:          # overrides base class
+        """Main worker method that captures and processes screenshots.
+        
+        This method runs in a background task and handles:
+        - Mouse event monitoring
+        - Screen capture
+        - Periodic screenshots
+        - Image processing and analysis
+        """
+        log = logging.getLogger("Screen")
+        if self.debug:
+            logging.basicConfig(level=logging.INFO, format="%(asctime)s [Screen] %(message)s", datefmt="%H:%M:%S")
+        else:
+            log.addHandler(logging.NullHandler())
+            log.propagate = False
+
+        CAP_FPS  = self._CAPTURE_FPS
+        DEBOUNCE = self._DEBOUNCE_SEC
+
+        loop = asyncio.get_running_loop()
+
+        # ------------------------------------------------------------------
+        # All calls to mss / Quartz are wrapped in `to_thread`
+        # ------------------------------------------------------------------
+        with mss.mss() as sct:
+            mons = sct.monitors[self._MON_START:]
+
+            # ---- mouse callbacks (pynput is sync → schedule into loop) ----
+            def schedule_event(x: float, y: float, typ: str):
+                asyncio.run_coroutine_threadsafe(mouse_event(x, y, typ), loop)
+
+            listener = mouse.Listener(
+                on_move=lambda x, y: schedule_event(x, y, "move"),
+                on_click=lambda x, y, btn, prs: schedule_event(x, y, "click") if prs else None,
+                on_scroll=lambda x, y, dx, dy: schedule_event(x, y, "scroll"),
+            )
+            listener.start()
+
+            # ---- nested helper inside the async context ----
+            async def flush():
+                """Process pending event and emit update."""
+                if self._pending_event is None:
+                    return
+                if self._skip():
+                    self._pending_event = None
+                    return
+
+                ev = self._pending_event
+                aft = await asyncio.to_thread(sct.grab, mons[ev["mon"] - 1])
+
+                await self._save_frame(ev["before"], "before")
+                await self._save_frame(aft, "after")
+
+                # log.info(f"{ev['type']} captured on monitor {ev['mon']}")
+                self._pending_event = None
+
+            def debounce_flush():
+                """Schedule flush as a task."""
+                asyncio.create_task(flush())
+
+            # ---- mouse event reception ----
+            async def mouse_event(x: float, y: float, typ: str):
+                """Handle mouse events.
+                
+                Args:
+                    x (float): X coordinate.
+                    y (float): Y coordinate.
+                    typ (str): Event type ("move", "click", or "scroll").
+                """
+                idx = self._mon_for(x, y, mons)
+                # log.info(
+                #     f"{typ:<6} @({x:7.1f},{y:7.1f}) → mon={idx}   {'(guarded)' if self._skip() else ''}"
+                # )
+                if self._skip() or idx is None:
+                    return
+
+                # lazily grab before-frame
+                if self._pending_event is None:
+                    async with self._frame_lock:
+                        bf = self._frames.get(idx)
+                    if bf is None:
+                        return
+                    self._pending_event = {"type": typ, "mon": idx, "before": bf}
+
+                # reset debounce timer
+                if self._debounce_handle:
+                    self._debounce_handle.cancel()
+                self._debounce_handle = loop.call_later(DEBOUNCE, debounce_flush)
+
+            # ---- main capture loop ----
+            log.info(f"Screen observer started — guarding {self._guard or '∅'}")
+
+            while self._running:                         # flag from base class
+                t0 = time.time()
+
+                # refresh 'before' buffers
+                for idx, m in enumerate(mons, 1):
+                    frame = await asyncio.to_thread(sct.grab, m)
+                    async with self._frame_lock:
+                        self._frames[idx] = frame
+
+                # fps throttle
+                dt = time.time() - t0
+                await asyncio.sleep(max(0, (1 / CAP_FPS) - dt))
+
+            # shutdown
+            listener.stop()
+            if self._debounce_handle:
+                self._debounce_handle.cancel()
+
+###############################################################################
+# Main function                                                               #
+###############################################################################
+
+
+async def run_screen_observer(
+    screenshots_dir: str = "~/.cache/record/screenshots",
+    skip_when_visible: Optional[str | list[str]] = None,
+    debug: bool = False,
+) -> None:
+    """Run the screen observer continuously.
+    
+    Args:
+        screenshots_dir (str, optional): Directory to store screenshots. Defaults to "~/.cache/record/screenshots".
+        skip_when_visible (Optional[str | list[str]], optional): Application names to skip when visible.
+            Defaults to None.
+        debug (bool, optional): Enable debug logging. Defaults to False.
+    """
+    screen = Screen(
+        screenshots_dir=screenshots_dir,
+        skip_when_visible=skip_when_visible,
+        debug=debug,
+    )
+    
+    screen.start()
+    
+    try:
+        await screen.wait()
+    except KeyboardInterrupt:
+        print("\nShutting down screen observer...")
+        screen.stop()
+        await screen.wait()
+        print("Screen observer stopped.")
+
+
+def main() -> None:
+    """Main entry point for running the screen observer."""
+    import signal
+    
+    # Create event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    # Create a task that can be cancelled
+    task = None
+    
+    # Setup signal handlers for graceful shutdown
+    def signal_handler(sig, frame):
+        print(f"\nReceived signal {sig}, shutting down...")
+        if task:
+            task.cancel()
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    try:
+        # Run the screen observer
+        task = loop.create_task(run_screen_observer(debug=True))
+        loop.run_until_complete(task)
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        print("\nShutting down screen observer...")
+    finally:
+        # Cancel any remaining tasks
+        pending = asyncio.all_tasks(loop)
+        for t in pending:
+            t.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.close()
+        print("Screen observer stopped.")
+
+
+if __name__ == "__main__":
+    main()

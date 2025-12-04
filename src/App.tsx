@@ -1,37 +1,71 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Button, Card, Container, Loader, Center } from '@mantine/core'
+
 import UpdateElectron from '@/components/update'
-import logoVite from './assets/logo-vite.svg'
-import logoElectron from './assets/logo-electron.svg'
+import Welcome from '@/components/Welcome'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-  return (
-    <div className='App'>
-      <div className='logo-box'>
-        <a href='https://github.com/electron-vite/electron-vite-react' target='_blank'>
-          <img src={logoVite} className='logo vite' alt='Electron + Vite logo' />
-          <img src={logoElectron} className='logo electron' alt='Electron + Vite logo' />
-        </a>
-      </div>
-      <h1>Electron + Vite + React</h1>
-      <div className='card'>
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className='read-the-docs'>
-        Click on the Electron + Vite logo to learn more
-      </p>
-      <div className='flex-center'>
-        Place static files into the<code>/public</code> folder <img style={{ width: '5em' }} src='./node.svg' alt='Node logo' />
-      </div>
+  const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
 
-      <UpdateElectron />
-    </div>
+  useEffect(() => {
+    checkSetup()
+  }, [])
+
+  const checkSetup = async () => {
+    const setupComplete = await window.electronAPI.checkSetup()
+    setIsSetupComplete(setupComplete)
+  }
+
+  const handleStartRecording = () => {
+    window.electronAPI.runPython()
+    setIsRecording(true)
+  }
+
+  const pauseRecording = () => {
+    window.electronAPI.stopPython()
+    setIsRecording(false)
+  }
+
+  // Show loading state while checking setup
+  if (isSetupComplete === null) {
+    return (
+      <Center style={{ minHeight: '100vh' }}>
+        <Loader size="lg" />
+      </Center>
+    )
+  }
+
+  // Show welcome page if setup is not complete
+  if (!isSetupComplete) {
+    return <Welcome onComplete={checkSetup} />
+  }
+
+  // Show main app
+  return (
+    <Container size="md" py="xl">
+      <div className='App'>
+        <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+          <Button
+            onClick={handleStartRecording}
+            color={"blue"}
+            size="lg"
+            fullWidth
+          >
+            {"▶ Play"}
+          </Button>
+          <Button
+            onClick={pauseRecording}
+            color={"red"}
+            size="lg"
+            fullWidth
+          >
+            {"⏸ Pause"}
+          </Button>
+        </Card>
+      </div>
+    </Container>
   )
 }
 

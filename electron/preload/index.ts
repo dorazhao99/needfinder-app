@@ -1,6 +1,18 @@
 import { ipcRenderer, contextBridge } from 'electron'
 
 // --------- Expose some API to the Renderer process ---------
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  runPython: () => ipcRenderer.send("run-python"),
+  stopPython: () => ipcRenderer.send("stop-python"),
+  checkSetup: () => ipcRenderer.invoke("check-setup"),
+  getPreferences: () => ipcRenderer.invoke("get-preferences"),
+  savePreferences: (prefs: { name: string; screenshotDirectory: string }) => 
+    ipcRenderer.invoke("save-preferences", prefs),
+  selectDirectory: () => ipcRenderer.invoke("select-directory")
+});
+
+
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
