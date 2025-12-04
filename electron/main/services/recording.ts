@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { ChildProcess } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { getUser } from '../ipc/db'
 
 let pythonProcess: ChildProcess | null = null;
 
@@ -31,6 +32,11 @@ function getRecording() {
 export function startRecording() {
     // Stop existing process if running
     if (!pythonProcess) {
+      // Get user's file_dir from database
+      const user = getUser();
+      console.log("User:", user);
+      const file_dir = user?.file_dir; 
+      
       const scriptPath = getRecording();
       console.log(`Starting Python script from: ${scriptPath}`);
       const scriptDir = path.dirname(scriptPath);
@@ -39,7 +45,7 @@ export function startRecording() {
     
       pythonProcess = spawn(
         uvCmd,
-        ["run", "python", scriptPath],
+        ["run", "python", scriptPath, "--file-dir", file_dir],
         {
           cwd: scriptDir,            // so uv sees pyproject.toml
           stdio: ["inherit", "inherit", "inherit"],

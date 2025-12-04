@@ -8,7 +8,7 @@ interface WelcomeProps {
 export default function Welcome({ setIsSetupComplete }: WelcomeProps) {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
-  const [selectedDirectory, setSelectedDirectory] = useState('~/.cache/recordr')
+  const [selectedDirectory, setSelectedDirectory] = useState('~/.cache/recordr/screenshots')
   const [isFocused, setIsFocused] = useState({ name: false, directory: false })
 
   const handleSelectDirectory = async () => {

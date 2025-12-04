@@ -7,7 +7,7 @@ interface User {
     file_dir: string
   }
 
-export default function Recorder({ userInfo }) {
+export default function Recorder() {
 
     const handleStartRecording = () => {
         window.electronAPI.runPython()
@@ -21,7 +21,7 @@ export default function Recorder({ userInfo }) {
         <div className='App'>
           <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
             <Button
-              onClick={() => handleStartRecording(userInfo.file_dir)}
+              onClick={() => handleStartRecording()}
               color={"blue"}
               size="lg"
               fullWidth
@@ -29,7 +29,7 @@ export default function Recorder({ userInfo }) {
               {"▶ Play"}
             </Button>
             <Button
-              onClick={() => pauseRecording(userInfo.file_dir)}
+              onClick={() => pauseRecording()}
               color={"red"}
               size="lg"
               fullWidth

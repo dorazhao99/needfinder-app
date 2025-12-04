@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
-import { update } from './update'
 import { startRecording, stopRecording } from './services/recording'
 import { startMonitoring } from './services/detectMicrophone'
 import { initDatabase } from './db/db'
@@ -38,7 +37,7 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0)
 }
 
-let win: BrowserWindow | null = null
+let win: BrowserWindow;
 let tray: Tray | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
@@ -82,10 +81,13 @@ async function createWindow() {
     return { action: 'deny' }
   })
 
-  // Auto update
-  update(win)
 }
 
+win?.on("close", (e) => {
+  win = null;
+  e.preventDefault();
+  win?.hide();
+});
 
 function createTray() {
   // use a template icon for macOS so it adapts to dark/light mode
@@ -100,10 +102,13 @@ function createTray() {
     {
       label: `Open ${app.getName()}`,
       click: () => {
-        if (win) {
-          win.show();
-          win.focus();
+        if (!win) {
+          createWindow(); // recreate if it was actually destroyed
         }
+        if (!win.isVisible()) {
+          win.show();
+        }
+        win?.focus();
       },
     },
     { type: 'separator' },

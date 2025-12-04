@@ -60,3 +60,5 @@ ipcMain.handle('user:save', (event, { name, file_dir, interview_time }) => {
     user,
   };
 });
+
+export { getUser, saveUser };

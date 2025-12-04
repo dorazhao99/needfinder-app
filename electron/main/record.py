@@ -384,7 +384,7 @@ class Screen():
 
 
 async def run_screen_observer(
-    screenshots_dir: str = "~/.cache/record/screenshots",
+    screenshots_dir: str = "~/.cache/recordr/screenshots",
     skip_when_visible: Optional[str | list[str]] = None,
     debug: bool = False,
 ) -> None:
@@ -452,6 +452,6 @@ def main(file_dir: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Record screen activity')
-    parser.add_argument('--file-dir', type=str, required=True, help='Directory to store screenshots')
+    parser.add_argument('--file-dir', type=str, required=True, help='Directory to store screenshots', default="~/.cache/recordr/screenshots")
     args = parser.parse_args()
     main(file_dir=args.file_dir)
