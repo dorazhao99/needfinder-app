@@ -120,6 +120,58 @@
   margin-top: 24px;
 }
 
+.home-insights-toggle {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Switch styling to match app design */
+.home-insights-toggle .mantine-Switch-root {
+  color: var(--text-secondary) !important;
+}
+
+.home-insights-toggle .mantine-Switch-label {
+  color: var(--text-secondary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.2px !important;
+}
+
+.home-insights-toggle .mantine-Switch-track {
+  background-color: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-full) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.home-insights-toggle .mantine-Switch-thumb {
+  background-color: var(--text-muted) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.home-insights-toggle .mantine-Switch-input:checked + .mantine-Switch-track {
+  background-color: var(--glass-bg-focus) !important;
+  border-color: var(--glass-border-focus) !important;
+}
+
+.home-insights-toggle .mantine-Switch-input:checked + .mantine-Switch-track .mantine-Switch-thumb {
+  background-color: var(--text-primary) !important;
+  border-color: var(--glass-border-focus) !important;
+}
+
+.home-insights-toggle .mantine-Switch-input:hover:not(:disabled) + .mantine-Switch-track {
+  background-color: var(--glass-bg-hover) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+
+.home-insights-toggle .mantine-Switch-input:checked:hover:not(:disabled) + .mantine-Switch-track {
+  background-color: var(--glass-bg-focus) !important;
+  border-color: var(--glass-border-focus) !important;
+}
+
 .home-input {
   width: 100%;
   font-size: 16px;

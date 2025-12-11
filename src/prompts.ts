@@ -89,59 +89,121 @@ Capable but Uncertain: The Confidence Gap in Technical Judgment: Despite strong 
 Dora exhibits systematic technical skill and handles complex codebases with care, yet she frequently re-verifies her work, consults ChatGPT extensively, and hesitates before implementing changes. This over-validation behavior suggests either reduced confidence in her judgment or a high perceived cost of errors, possibly rooted in past negative experiences with production failures. The result is slower execution and diminished self-trust despite clear competence.
 `
 
-export const make_solution = (params) => {
-    const prompt = `
-    You are an expert in design-thinking, specialized in the IDEATE and PROTOTYPE stage. 
+interface MakeSolutionParams {
+    user_name: string;
+    scenario: string;
+    limit: number;
+}
 
-    You are given a DESIGN SCENARIO and relevant USER INSIGHTS. 
+export const make_solution = (params: MakeSolutionParams, use_insights: boolean = true) => {
+    let prompt = ''; 
+    console.log(use_insights);
+    if (use_insights) {
+        prompt = `
+        You are an expert in design-thinking, specialized in the IDEATE and PROTOTYPE stage. 
+    
+        You are given a DESIGN SCENARIO and relevant USER INSIGHTS. 
+    
+        Your task is to proposed ${params.limit} diverse actions that a tool-calling agent can take to proactively address the DESIGN SCENARIO.
+    
+        # Guidelines
+        1. Review the user insights and design scenario, ideating a wide range of potential actions the tool-calling agent can take based.
+        2. For each action, evaluate how beneficial they would be to ${params.user_name} given the USER INSIGHTS. Rank the actions by how much the action would benefit them.
+        3. Next, for each action, evaluate its implementability given the IMPLEMENTATION CONSTRAINTS. For each action, decide whether it can implemented under these constraints. If it can be implemented, reflect on how beneficial it would be to ${params.user_name}. Update the ranking of solutions after accounting for implementation.
+        4. Select the top ${params.limit} actions that are implementable and beneficial to {user_name}.
+    
+        # Input
+        DESIGN SCENARIO:
+        ${params.scenario}
+    
+        INSIGHTS:
+        ${TEST_INSIGHTS}
+    
+        IMPLEMENTATION CONSTRAINTS:
+        ${IMPLEMENTATION_CONSTRAINTS}
+    
+        # Output
+        Your output must include (1) a short description of the action, (2) user inputs needed, (3) the execution prompt that will be fed to the agent.
+    
+        ## Criteria
+        When generating the execution prompt, it must be specific and make reference to the specific tools and actions that the agent can take.
+    
+        ### Examples of Execution Prompts:
+        - Draft a one-page IRB data-sensitivity checklist and 'Do NOT create DB until' gate saved to checklist.md that enumerates exact verification steps (IAM least-privilege checks, encryption/transit confirmation, backup/restore test steps, SMTP verification, key rotation requirements) and the precise console/gcloud commands or screenshot instructions needed to prove each item.
+        - Generate a one-page executive summary and a 3–5 minute speaker script (saved as "summary.txt") covering objectives, methodology, participant protections/consent plan, technical security appendix, current metrics/status, open questions, and next steps.
+    
+        This prompt should be directly usable as a system prompt for a tool-enabled agent.
+    
+        **IMPORTANT**
+        Your role is **NOT** to perform the task in the prose description.
+        Your role is to produce the specification that another agent will follow to perform it.
+    
+        Return just the specifications in the following format:
+        [{{
+            "name": "Name of the action",
+            "description": "1-2 sentence description of the action written in second person",
+            "user_inputs": [
+                {{
+                    "placeholder_name": "Name of placeholder in the prompt where the input will be added", 
+                    "description": "Description of input", 
+                    "modality": [TEXTBOX]
+                }}
+            ],
+            "execution_prompt": "The execution prompt that will be fed to the agent",
+        }}]
+        `
+    } else {
+        prompt = `
+        You are an expert in design-thinking, specialized in the IDEATE and PROTOTYPE stage. 
 
-    Your task is to proposed 3 diverse actions that a tool-calling agent can take to proactively address the DESIGN SCENARIO.
+        You are given a DESIGN SCENARIO. 
 
-    # Guidelines
-    1. Review the user insights and design scenario, ideating a wide range of potential actions the tool-calling agent can take based.
-    2. For each action, evaluate how beneficial they would be to ${params.user_name} given the USER INSIGHTS. Rank the actions by how much they would benefit her.
-    3. Next, for each action, evaluate its implementability given the IMPLEMENTATION CONSTRAINTS. For each action, decide whether it can implemented under these constraints. If it can be implemented, reflect on how beneficial it would be to ${params.user_name}. Update the ranking of solutions after accounting for implementation.
-    4. Select the top ${params.limit} actions that are implementable and beneficial to {user_name}.
+        Your task is to proposed ${params.limit} diverse actions that a tool-calling agent can take to proactively address the DESIGN SCENARIO.
 
-    # Input
-    DESIGN SCENARIO:
-    ${params.scenario}
+        # Guidelines
+        1. Review the user insights and design scenario, ideating a wide range of potential actions the tool-calling agent can take based.
+        2. For each action, evaluate how beneficial they would be to ${params.user_name}. Rank the actions by how much they would benefit her.
+        3. Next, for each action, evaluate its implementability given the IMPLEMENTATION CONSTRAINTS. For each action, decide whether it can implemented under these constraints. If it can be implemented, reflect on how beneficial it would be to ${params.user_name}. Update the ranking of solutions after accounting for implementation.
+        4. Select the top ${params.limit} actions that are implementable and beneficial to {user_name}.
 
-    INSIGHTS:
-    ${TEST_INSIGHTS}
+        # Input
+        DESIGN SCENARIO:
+        ${params.scenario}
 
-    IMPLEMENTATION CONSTRAINTS:
-    ${IMPLEMENTATION_CONSTRAINTS}
+        IMPLEMENTATION CONSTRAINTS:
+        ${IMPLEMENTATION_CONSTRAINTS}
 
-    # Output
-    Your output must include (1) a short description of the action, (2) user inputs needed, (2) the execution prompt that will be fed to the agent.
+        # Output
+        Your output must include (1) a short description of the action, (2) user inputs needed, (3) the execution prompt that will be fed to the agent.
 
-    ## Criteria
-    When generating the execution prompt, it must be specific and make reference to the specific tools and actions that the agent can take.
+        ## Criteria
+        When generating the execution prompt, it must be specific and make reference to the specific tools and actions that the agent can take.
 
-    ### Examples of Execution Prompts:
-    - Draft a one-page IRB data-sensitivity checklist and 'Do NOT create DB until' gate saved to checklist.md that enumerates exact verification steps (IAM least-privilege checks, encryption/transit confirmation, backup/restore test steps, SMTP verification, key rotation requirements) and the precise console/gcloud commands or screenshot instructions needed to prove each item.
-    - Generate a one-page executive summary and a 3–5 minute speaker script (saved as "summary.txt") covering objectives, methodology, participant protections/consent plan, technical security appendix, current metrics/status, open questions, and next steps.
+        ### Examples of Execution Prompts:
+        - Draft a one-page IRB data-sensitivity checklist and 'Do NOT create DB until' gate saved to checklist.md that enumerates exact verification steps (IAM least-privilege checks, encryption/transit confirmation, backup/restore test steps, SMTP verification, key rotation requirements) and the precise console/gcloud commands or screenshot instructions needed to prove each item.
+        - Generate a one-page executive summary and a 3–5 minute speaker script (saved as "summary.txt") covering objectives, methodology, participant protections/consent plan, technical security appendix, current metrics/status, open questions, and next steps.
 
-    This prompt should be directly usable as a system prompt for a tool-enabled agent.
+        This prompt should be directly usable as a system prompt for a tool-enabled agent.
 
-    **IMPORTANT**
-    Your role is **NOT** to perform the task in the prose description.
-    Your role is to produce the specification that another agent will follow to perform it.
+        **IMPORTANT**
+        Your role is **NOT** to perform the task in the prose description.
+        Your role is to produce the specification that another agent will follow to perform it.
 
-    Return just the specifications in the following format:
-    [{{
-        "name": "Name of the action",
-        "description": "1-2 sentence description of the action",
-        "user_inputs": [
-            {{
-                "placeholder_name": "Name of placeholder in the prompt where the input will be added", 
-                "description": "Description of input", 
-                "modality": [TEXTBOX]
-            }}
-        ],
-        "execution_prompt": "The execution prompt that will be fed to the agent",
-    }}]
-    `
+        Return just the specifications in the following format:
+        [{{
+            "name": "Name of the action",
+            "description": "1-2 sentence description of the action written in second person",
+            "user_inputs": [
+                {{
+                    "placeholder_name": "Name of placeholder in the prompt where the input will be added", 
+                    "description": "Description of input", 
+                    "modality": [TEXTBOX]
+                }}
+            ],
+            "execution_prompt": "The execution prompt that will be fed to the agent",
+        }}]
+        `
+    }
+    console.log(prompt);
     return prompt;
 }

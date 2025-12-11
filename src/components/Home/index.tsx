@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import {Button} from '@mantine/core';
+import {Button, Switch} from '@mantine/core';
 import { IconArrowUp, IconRefresh } from '@tabler/icons-react';
 import SidePanel, { Solution } from '@/components/SidePanel';
 import { make_solution } from '@/prompts';
+import { parseModelJson } from '@/utils';
+import { SOLUTION_MODEL, SOLUTION_LIMIT } from '@/configs';
 import './home.css';
 
 interface HomeProps {
@@ -27,8 +29,9 @@ export default function Home({ userName }: HomeProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [solutions, setSolutions] = useState(testCase);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<Solution | null>(null);
+  const [useInsights, setUseInsights] = useState(true);
 
   
   const handleSubmit = async () => {
@@ -39,14 +42,15 @@ export default function Home({ userName }: HomeProps) {
       
       try {
         const prompt = make_solution({
-          user_name: userName,
+          user_name: userName || 'User',
           scenario: query,
-        });
-        const result = await window.electronAPI?.callLLM(prompt, 'gpt-4.1-mini');
+          limit: SOLUTION_LIMIT,
+        }, useInsights);
+        const result = await window.electronAPI?.callLLM(prompt, SOLUTION_MODEL);
 
-        console.log(prompt);
+        console.log(result);
         if (result?.success && result.content) {
-          const parsedJSON = JSON.parse(result.content);
+          const parsedJSON = parseModelJson(result.content);
           let fmtSolutions = parsedJSON.map((solution: any) => ({
             solution: {
               name: solution.name,
@@ -85,10 +89,11 @@ export default function Home({ userName }: HomeProps) {
       
       try {
         const prompt = make_solution({
-          user_name: userName,
+          user_name: userName || 'User',
           scenario: lastQuery,
-        });
-        const result = await window.electronAPI?.callLLM(prompt, 'gpt-4.1-mini');
+          limit: SOLUTION_LIMIT,
+        }, useInsights);
+        const result = await window.electronAPI?.callLLM(prompt, SOLUTION_MODEL);
 
         if (result?.success && result.content) {
           const parsedJSON = JSON.parse(result.content);
@@ -148,6 +153,15 @@ export default function Home({ userName }: HomeProps) {
               >
                 <IconArrowUp size={20} stroke={2} />
               </Button>
+            </div>
+            <div className="home-insights-toggle">
+              <Switch
+                label="Use insights"
+                checked={useInsights}
+                onChange={(e) => setUseInsights(e.currentTarget.checked)}
+                size="sm"
+                className="home-insights-switch"
+              />
             </div>
             {response && (
               <div className="home-response">

@@ -224,7 +224,7 @@ ipcMain.handle("call-llm", async (_, message: string, model: string) => {
       });
       return {
         success: true,
-        content: response.content,
+        content: response.content[0].text,
       };
     } else {
       throw new Error(`Model ${model} not supported`);

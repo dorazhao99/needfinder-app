@@ -5,8 +5,10 @@ import {
   IconBulb,
   IconHistory,
   IconSettings,
+  IconChevronLeft,
+  IconChevronRight,
 } from '@tabler/icons-react';
-import { Group, NavLink } from '@mantine/core';
+import { Group, NavLink, Button} from '@mantine/core';
 import './navbar.css';
 
 const data = [
@@ -24,6 +26,7 @@ interface NavbarSimpleProps {
 
 export function NavbarSimple({ activePage, onPageChange }: NavbarSimpleProps) {
   const [active, setActive] = useState(activePage || 'Recorder');
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleClick = (label: string) => {
     setActive(label);
@@ -32,14 +35,20 @@ export function NavbarSimple({ activePage, onPageChange }: NavbarSimpleProps) {
     }
   };
 
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
+
   const links = data.map((item) => (
     <NavLink
       className="link"
       data-active={item.label === active || undefined}
+      data-collapsed={collapsed || undefined}
+      data-label={item.label}
       href={item.link}
       key={item.label}
       disabled={item.label === 'Insights'}
-      label={item.label}
+      label={collapsed ? undefined : item.label}
       leftSection={<item.icon className="linkIcon" stroke={1.5} />}
       color="white"
       onClick={(event) => {
@@ -50,9 +59,20 @@ export function NavbarSimple({ activePage, onPageChange }: NavbarSimpleProps) {
   ));
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${collapsed ? 'collapsed' : ''}`}>
       <div className="navbarMain">
         <Group className="header" justify="space-between">
+          <Button 
+            className="navbar-toggle"
+            onClick={toggleCollapse}
+            aria-label={collapsed ? 'Expand navbar' : 'Collapse navbar'}
+          >
+            {collapsed ? (
+              <IconChevronRight size={14} stroke={2} />
+            ) : (
+              <IconChevronLeft size={14} stroke={2} />
+            )}
+          </Button>
         </Group>
         {links}
       </div>

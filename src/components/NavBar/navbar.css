@@ -11,12 +11,19 @@
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar.collapsed {
+  width: 60px;
+  padding: 24px 12px;
 }
 
 .navbarMain {
   flex: 1;
   position: relative;
   z-index: 1;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Header */
@@ -24,6 +31,14 @@
   padding-bottom: 24px;
   margin-bottom: 32px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar.collapsed .header {
+  justify-content: center;
 }
 
 /* Footer */
@@ -31,6 +46,45 @@
   padding-top: 24px;
   margin-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Toggle Button */
+.navbar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border) !important;
+  background: var(--glass-bg) !important;
+  border-radius: var(--radius-md) !important;
+  cursor: pointer;
+  color: var(--text-muted) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  padding: 0.5em !important;
+  min-width: 24px;
+  width: 24px;
+  min-height: 24px;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.navbar-toggle:hover {
+  background: var(--glass-bg-focus) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.navbar-toggle:focus,
+.navbar-toggle:focus-visible,
+.navbar-toggle:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--glass-border) !important;
+}
+
+.navbar-toggle:active {
+  transform: scale(0.95) !important;
+  border-color: var(--glass-border) !important;
 }
 
 /* Link Styles */
@@ -48,6 +102,44 @@
   position: relative;
   letter-spacing: -0.2px;
   background-color: transparent !important;
+  justify-content: flex-start;
+}
+
+.link[data-collapsed] {
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Remove extra spacing from Mantine NavLink internal structure when collapsed */
+.link[data-collapsed] > * {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.link[data-collapsed] .mantine-NavLink-section {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.link[data-collapsed] .mantine-NavLink-body {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+.link[data-collapsed] [class*="mantine-NavLink-leftSection"] {
+  margin: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 !important;
+}
+
+.link[data-collapsed] [class*="mantine-NavLink-rightSection"] {
+  display: none !important;
 }
 
 /* Mantine NavLink text color override */
@@ -60,6 +152,10 @@
   background-color: rgba(239, 68, 68, 0.15) !important;
   color: rgba(255, 255, 255, 0.95) !important;
   transform: translateX(4px);
+}
+
+.link[data-collapsed]:hover {
+  transform: scale(1.1);
 }
 
 /* Override Mantine NavLink hover styles - target all possible Mantine classes */
@@ -109,6 +205,10 @@
   box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
 }
 
+.link[data-active][data-collapsed]:hover {
+  transform: scale(1.1);
+}
+
 .link[data-active] .linkIcon {
   color: rgba(255, 255, 255, 1);
 }
@@ -123,10 +223,51 @@
   flex-shrink: 0;
 }
 
+.link[data-collapsed] .linkIcon {
+  margin-right: 0;
+  margin-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .link:hover .linkIcon {
   transform: scale(1.1);
 }
 
 .link[data-active] .linkIcon {
   color: rgba(255, 255, 255, 1);
+}
+
+/* Hide label text when collapsed */
+.link[data-collapsed] .mantine-NavLink-label {
+  display: none !important;
+}
+
+/* Tooltip for collapsed state - show on hover */
+.link[data-collapsed]:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 100%;
+  margin-left: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: fadeInTooltip 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInTooltip {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
