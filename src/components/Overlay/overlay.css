@@ -17,7 +17,6 @@ body:has(.overlay-container),
   align-items: center;
   justify-content: center;
   background: transparent;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
   position: fixed;
   top: 0;
   left: 0;

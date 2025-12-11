@@ -56,7 +56,14 @@
   margin-top: 32px; /* Account for fixed TitleBar */
   height: calc(100vh - 32px);
   width: 100%;
-  background: linear-gradient(160deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  background: var(--bg-gradient);
+  position: relative;
+  overflow: hidden;
+}
+
+.default-view {
+  flex: 1;
+  display: flex;
   position: relative;
   overflow: hidden;
 }

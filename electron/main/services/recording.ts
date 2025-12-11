@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { ChildProcess } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { getUser } from '../ipc/db'
+import { setScreenRecordingNotAllowed } from '../index'
 
 let pythonProcess: ChildProcess | null = null;
 
@@ -54,6 +55,10 @@ export function startRecording() {
     
       pythonProcess.on("error", (error) => {
         console.error("Failed to start Python script:", error);
+        if (error.message.includes("Screen capture not allowed")) {
+            setScreenRecordingNotAllowed();
+            return;
+        }
         pythonProcess = null;
       });
     

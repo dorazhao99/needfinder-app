@@ -12,6 +12,11 @@ interface Window {
     selectDirectory: () => Promise<string | null>,
     closeOverlay: () => void,
     pauseOverlayTimeout: () => void,
-    resumeOverlayTimeout: () => void
+    resumeOverlayTimeout: () => void,
+    getRecordingState: () => Promise<boolean>,
+    toggleRecording: () => Promise<void>,
+    openSystemSettings: () => Promise<boolean>,
+    callLLM: (message: string, model: string) => Promise<{ success: boolean; content?: string; error?: string }>,
+    callAgent: (message: string) => Promise<{ success: boolean; message?: string; error?: string }>
   }
 }

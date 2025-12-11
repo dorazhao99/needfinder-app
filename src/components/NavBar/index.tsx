@@ -17,8 +17,20 @@ const data = [
   { link: '', label: 'Settings', icon: IconSettings },
 ];
 
-export function NavbarSimple() {
-  const [active, setActive] = useState('Home');
+interface NavbarSimpleProps {
+  activePage?: string;
+  onPageChange?: (page: string) => void;
+}
+
+export function NavbarSimple({ activePage, onPageChange }: NavbarSimpleProps) {
+  const [active, setActive] = useState(activePage || 'Recorder');
+
+  const handleClick = (label: string) => {
+    setActive(label);
+    if (onPageChange) {
+      onPageChange(label);
+    }
+  };
 
   const links = data.map((item) => (
     <NavLink
@@ -32,7 +44,7 @@ export function NavbarSimple() {
       color="white"
       onClick={(event) => {
         event.preventDefault();
-        setActive(item.label);
+        handleClick(item.label);
       }}
     />
   ));

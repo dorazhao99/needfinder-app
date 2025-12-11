@@ -36,11 +36,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.3",
     "@mantine/core": "^8.3.9",
     "@mantine/hooks": "^8.3.9",
     "@tabler/icons-react": "^3.35.0",
     "better-sqlite3": "^12.5.0",
-    "electron-updater": "^6.3.9"
+    "electron-updater": "^6.3.9",
+    "openai": "^6.10.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",

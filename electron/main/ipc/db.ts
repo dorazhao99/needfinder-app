@@ -49,12 +49,12 @@ ipcMain.handle('user:get', () => {
 });
 
 // IPC: save/update user profile
-ipcMain.handle('user:save', (event, { name, file_dir, interview_time }) => {
+ipcMain.handle('user:save', (event, { name, file_dir }) => {
   if (!name || !file_dir) {
     throw new Error('name and file_dir are required');
   }
 
-  const user = saveUser({ name, file_dir, interview_time });
+  const user = saveUser({ name, file_dir });
   return {
     success: true,
     user,

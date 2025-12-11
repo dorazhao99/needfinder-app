@@ -16,6 +16,7 @@ release
 
 # Editor directories and files
 .vscode/.debug.env
+.env
 .idea
 .DS_Store
 *.suo
@@ -23,6 +24,7 @@ release
 *.njsproj
 *.sln
 *.sw?
+.env
 
 #lockfile
 package-lock.json

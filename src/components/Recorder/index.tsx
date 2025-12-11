@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { IconPlayerPlay, IconPlayerPause, IconPlayerStop } from '@tabler/icons-react';
+import RecordingPopup from '../RecordingPopup';
 import './recorder.css';
 
 export default function Recorder() {
   const [recordingState, setRecordingState] = useState('idle'); // 'idle', 'recording', 'paused'
   const [duration, setDuration] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -16,11 +18,42 @@ export default function Recorder() {
     return () => clearInterval(interval);
   }, [recordingState]);
 
+  useEffect(() => {
+    // Get initial state
+    window.electronAPI?.getRecordingState().then((state: boolean) => {
+      console.log('Initial recording state:', state);
+      setRecordingState(state ? 'recording' : 'idle');
+    });
+
+    // Listen for recording state changes
+    const handleRecordingStateChanged = (_event: Electron.IpcRendererEvent, isRecording: boolean) => {
+      console.log('Recording state changed:', isRecording);
+      if (isRecording) {
+        setRecordingState('recording');
+      } else {
+        // If we were recording and now it's false, it means paused
+        // Otherwise it's idle
+        setRecordingState(prev => prev === 'recording' ? 'paused' : 'idle');
+      }
+    };
+
+    window.ipcRenderer?.on('recording-state-changed', handleRecordingStateChanged);
+
+    // Cleanup listener on unmount
+    return () => {
+      window.ipcRenderer?.off('recording-state-changed', handleRecordingStateChanged);
+    };
+  }, []);
+
 
   const handleStartRecording = () => {
     setRecordingState('recording');
+    setShowPopup(true);
     if (window.electronAPI?.runPython) {
       window.electronAPI.runPython();
+    } 
+    if (window.electronAPI?.toggleRecording) {
+      window.electronAPI.toggleRecording();
     }
   };
 
@@ -28,6 +61,9 @@ export default function Recorder() {
     setRecordingState('paused');
     if (window.electronAPI?.stopPython) {
       window.electronAPI.stopPython();
+      if (window.electronAPI?.toggleRecording) {
+        window.electronAPI.toggleRecording();
+      }
     }
   };
 
@@ -35,20 +71,18 @@ export default function Recorder() {
     setRecordingState('recording');
     if (window.electronAPI?.runPython) {
       window.electronAPI.runPython();
+      if (window.electronAPI?.toggleRecording) {
+        window.electronAPI.toggleRecording();
+      }
     }
   };
 
-  const handleStopRecording = () => {
-    setRecordingState('idle');
-    setDuration(0);
-    if (window.electronAPI?.stopPython) {
-      window.electronAPI.stopPython();
-    }
-  };
 
   return (
-    <div className="recorder-container">
-      <div className="recorder-content">
+    <>
+      <RecordingPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
+      <div className="recorder-container">
+        <div className="recorder-content">
         {/* Main Card */}
         <div className="recorder-card">
           {/* Header */}
@@ -142,5 +176,6 @@ export default function Recorder() {
         </div>
       </div>
     </div>
+    </>
   );
 }

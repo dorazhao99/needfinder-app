@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { NavbarSimple } from '@/components/NavBar'
 import { Button, Card, Container, Loader, Center } from '@mantine/core'
 
 import UpdateElectron from '@/components/update'
@@ -7,7 +6,7 @@ import Welcome from '@/components/Welcome'
 import Overlay from '@/components/Overlay'
 import './App.css'
 import { TitleBar } from './components/TitleBar'
-import Recorder from './components/Recorder'
+import DefaultView from './components/DefaultView'
 
 interface User {
   name: string
@@ -70,10 +69,7 @@ function App() {
     return (
       <>
         <TitleBar />
-        <div className="main-layout">
-          <NavbarSimple />
-          <Recorder userInfo={user} />
-        </div>
+        <DefaultView userInfo={user} />
       </>
     )
   }

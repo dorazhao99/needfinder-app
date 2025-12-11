@@ -37,6 +37,8 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0)
 }
 
+export let isRecording = false;
+export let isScreenRecordingAllowed = true;
 let win: BrowserWindow;
 let tray: Tray | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
@@ -114,14 +116,16 @@ function createTray() {
     { type: 'separator' },
     {
       label: "Start Recording",
-      click: () => {
-        startRecording();
+      click: async() => {
+        await startRecording();   // your logic here
+        setRecordingState(true);
       },
     },
     {
       label: "Pause Recording",
-      click: () => {
-        stopRecording();
+      click: async() => {
+        await stopRecording();   // your logic here
+        setRecordingState(false);
       },
     },
     { type: 'separator' },
@@ -145,6 +149,21 @@ function createTray() {
   //     win.focus();
   //   }
   // });
+}
+
+export function setRecordingState(nextState: boolean) {
+  isRecording = nextState;
+  // notify all windows
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send("recording-state-changed", isRecording);
+  }
+}
+
+export function setScreenRecordingNotAllowed() {
+  isScreenRecordingAllowed = false;
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send("get-permissions");
+  }
 }
 
 app.whenReady().then(async() => {

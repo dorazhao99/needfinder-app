@@ -29,6 +29,9 @@ print("record.py loaded")
 ###############################################################################
 
 
+
+    
+
 def _get_global_bounds() -> tuple[float, float, float, float]:
     """Return a bounding box enclosing **all** physical displays.
 
@@ -119,7 +122,7 @@ class Screen():
     """Observer that captures and analyzes screen content around user interactions.
 
     This observer captures screenshots before and after user interactions (mouse movements,
-    clicks, and scrolls) and uses GPT-4 Vision to analyze the content. It can also take
+    clicks, and scrolls). It can also take
     periodic screenshots and skip captures when certain applications are visible.
 
     Args:
@@ -454,4 +457,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Record screen activity')
     parser.add_argument('--file-dir', type=str, required=True, help='Directory to store screenshots', default="~/.cache/recordr/screenshots")
     args = parser.parse_args()
-    main(file_dir=args.file_dir)
+    if Quartz.CGPreflightScreenCaptureAccess():
+        print("Screen capture allowed for this process.")
+        main(file_dir=args.file_dir)
+    else:
+        print("Screen capture NOT allowed; requesting it…")
+        raise PermissionError("Screen capture not allowed")
+    

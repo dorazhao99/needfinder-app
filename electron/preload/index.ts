@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getUser: () => ipcRenderer.invoke("user:get"),
   saveUser: (user: { name: string; file_dir: string }) => ipcRenderer.invoke("user:save", user),
   selectDirectory: () => ipcRenderer.invoke("select-directory"),
+  getRecordingState: () => ipcRenderer.invoke("get-recording-state"),
+  toggleRecording: () => ipcRenderer.invoke("toggle-recording"),
+  openSystemSettings: () => ipcRenderer.invoke("open-system-settings"),
+  callLLM: (message: string, model: string) => ipcRenderer.invoke("call-llm", message, model),
+  callAgent: (message: string) => ipcRenderer.invoke("call-agent", message),
   closeOverlay: () => ipcRenderer.send("close-overlay"),
   pauseOverlayTimeout: () => ipcRenderer.send("pause-overlay-timeout"),
   resumeOverlayTimeout: () => ipcRenderer.send("resume-overlay-timeout")
