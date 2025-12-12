@@ -47,7 +47,7 @@ export function NavbarSimple({ activePage, onPageChange }: NavbarSimpleProps) {
       data-label={item.label}
       href={item.link}
       key={item.label}
-      disabled={item.label === 'Insights'}
+      // disabled={item.label === 'Insights'}
       label={collapsed ? undefined : item.label}
       leftSection={<item.icon className="linkIcon" stroke={1.5} />}
       color="white"

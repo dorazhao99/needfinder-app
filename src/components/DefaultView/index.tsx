@@ -4,6 +4,7 @@ import Recorder from '../Recorder';
 import Settings from '../Settings';
 import Home from '../Home';
 import History from '../History';
+import Insights from '../Insights';
 
 interface DefaultViewProps {
   userInfo: { name: string; file_dir: string } | null;
@@ -21,6 +22,7 @@ export default function DefaultView({ userInfo }: DefaultViewProps) {
       <NavbarSimple activePage={activePage} onPageChange={handlePageChange} />
       <div className="default-view">
         {activePage === 'Home' && <Home userName={userInfo?.name} />}
+        {activePage === 'Insights' && <Insights />}
         {activePage === 'Recorder' && <Recorder />}
         {activePage === 'History' && <History />}
         {activePage === 'Settings' && <Settings />}

@@ -1,1 +1,235 @@
-i
+/* Container - matches home-container */
+.insights-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-gradient);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+/* Content - wider for grid layout */
+.insights-content {
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+  z-index: 1;
+  text-align: left;
+  padding: 0 var(--spacing-lg);
+}
+
+/* Card - matches home-card */
+.insights-card {
+  border-radius: var(--radius-3xl);
+  padding: 24px;
+}
+
+/* Title - matches home-title */
+.insights-title {
+  font-size: 48px;
+  font-weight: 700;
+  background: var(--text-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+/* Action Container - matches home-action-container */
+.insights-action-container {
+  margin-top: 64px;
+  width: 100%;
+}
+
+/* Empty State */
+.insights-empty {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: left;
+}
+
+/* Error State */
+.insights-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-lg);
+  color: #ef4444;
+  font-size: 14px;
+  text-align: left;
+}
+
+/* Grid Container */
+.insights-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Insight Card Item */
+.insights-card-item {
+  padding: 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: auto;
+}
+
+.insights-card-item:hover {
+  border-color: var(--glass-border-focus);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05), var(--shadow-md);
+  background-color: var(--glass-bg-focus);
+  transform: translateY(-2px);
+}
+
+/* Card Header */
+.insights-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.insights-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Expand Button */
+.insights-card-expand-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.insights-card-expand-button:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+}
+
+.insights-card-expand-button:active {
+  transform: scale(0.95);
+}
+
+.insights-card-expand-button svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card Title */
+.insights-card-title {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+/* Card Tagline */
+.insights-card-tagline {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+  line-height: 1.4;
+  font-style: italic;
+  opacity: 0.9;
+  text-align: left;
+}
+
+/* Card Description Wrapper */
+.insights-card-description-wrapper {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card Description */
+.insights-card-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* Responsive grid */
+@media (max-width: 1024px) {
+  .insights-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .insights-content {
+    max-width: 100%;
+    padding: 0 var(--spacing-md);
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations - matches home animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
+  }
+}
