@@ -10,6 +10,7 @@ import { startMonitoring } from './services/detectMicrophone'
 import { initDatabase } from './db/db'
 import './ipc/ipc'
 import './ipc/db'
+import './ipc/insights'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

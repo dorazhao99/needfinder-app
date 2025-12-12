@@ -33,6 +33,7 @@ export function initDatabase() {
 
         CREATE TABLE IF NOT EXISTS insights (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
             tagline TEXT NOT NULL, 
             description TEXT NOT NULL,
             context TEXT NOT NULL,

@@ -33,6 +33,7 @@ export default function Home({ userName }: HomeProps) {
   const [solutionIds, setSolutionIds] = useState<number[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<Solution | null>(null);
   const [useInsights, setUseInsights] = useState(true);
+  const [selectedInsights, setSelectedInsights] = useState<string[]>([]);
 
   
   const handleSubmit = async () => {
@@ -40,11 +41,22 @@ export default function Home({ userName }: HomeProps) {
       setIsLoading(true);
       setError(null);
       setResponse(null);
-      
+
+      let insights: string[] = []
+      let insightIds: number[] = []
       try {
+        if (useInsights) {
+          console.log("Getting relevant insights", query);
+          const relevantInsights = await window.electronAPI?.getRelevantInsights(query);
+          insights = relevantInsights.insights;
+          setSelectedInsights(insights);
+          insightIds = relevantInsights.insightIds;
+          console.log("Relevant Insights: ", relevantInsights);
+        }
         const prompt = make_solution({
           user_name: userName || 'User',
           scenario: query,
+          insights: insights,
           limit: SOLUTION_LIMIT,
         }, useInsights);
         const result = await window.electronAPI?.callLLM(prompt, SOLUTION_MODEL);
@@ -71,6 +83,7 @@ export default function Home({ userName }: HomeProps) {
             request: query,
             model: SOLUTION_MODEL,
             use_insights: useInsights,
+            insight_ids: insightIds,
             solutions: fmtSolutions,
           });
           console.log(ids);
@@ -180,7 +193,15 @@ export default function Home({ userName }: HomeProps) {
                 className="home-insights-switch"
               />
             </div>
-            {response && (
+            {useInsights && selectedInsights.length > 0 ? (
+              <div className="home-response">
+                {selectedInsights.map((insight, index) => (
+                  <div key={index} style={{ marginBottom: '0.5rem' }}>
+                    {insight}
+                  </div>
+                ))}
+              </div>
+            ) : response && (
               <div className="home-response">
                 {response}
               </div>

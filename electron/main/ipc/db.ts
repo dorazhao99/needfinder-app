@@ -37,13 +37,23 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
   return getUser();
 }
 
-function saveSolutions({ request, model, use_insights, solutions }: { request: string; model: string; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
+function saveSolutions({ request, model, insight_ids, use_insights, solutions }: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
   const request_stmt = db.prepare(`
       INSERT into requests (description, created_at)
       VALUES (?, CURRENT_TIMESTAMP)
   `);
   const request_result = request_stmt.run(request);
   const request_id = request_result.lastInsertRowid;
+  
+  if (use_insights) {
+    const insight_stmt = db.prepare(`
+      INSERT into request_insights (request_id, insight_id)
+      VALUES (?, ?)
+    `);
+    for (const iid of insight_ids) {
+      insight_stmt.run(request_id, iid);
+    }
+  }
   // const reframe_id = 0 // TODO: get reframe id from db
   console.log("Request ID: ", request_id);
   const solution_stmt = db.prepare(`
@@ -109,6 +119,15 @@ function getAllSolutions() {
   return stmt.all();
 }
 
+function getMergedInsights() {
+  const stmt = db.prepare(`
+    SELECT * FROM insights
+    WHERE metainsight = TRUE
+  `);
+  return stmt.all();
+
+}
+
 // IPC: check if user exists
 ipcMain.handle('user:exists', () => {
   const row = db.prepare('SELECT 1 FROM user WHERE id = 1').get();
@@ -153,4 +172,8 @@ ipcMain.handle('agent:response:save', (event, { solution_id, agent_response, art
   return saveAgentResponse({ solution_id, agent_response, artifact_path });
 });
 
-export { getUser, saveUser };
+ipcMain.handle('insights:getMerged', () => {
+  return getMergedInsights();
+});
+
+export { getUser, saveUser, getMergedInsights };

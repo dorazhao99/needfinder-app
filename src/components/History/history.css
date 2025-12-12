@@ -11,13 +11,14 @@
   height: 100%;
 }
 
-/* Content - matches home-content */
+/* Content - wider for grid layout */
 .history-content {
   width: 100%;
-  max-width: 600px;
+  max-width: 1200px;
   position: relative;
   z-index: 1;
   text-align: center;
+  padding: 0 var(--spacing-lg);
 }
 
 /* Card - matches home-card */
@@ -58,7 +59,7 @@
   text-align: left;
 }
 
-/* Response Container - matches home-response */
+/* Response Container - grid layout */
 .history-response {
   margin-top: 16px;
   padding: 16px;
@@ -69,6 +70,9 @@
   font-size: 14px;
   line-height: 1.6;
   text-align: left;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   max-height: 600px;
   overflow-y: auto;
 }
@@ -76,13 +80,15 @@
 /* Solution Item - matches home-solution-item */
 .history-solution-item {
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .history-solution-item:hover {
@@ -142,6 +148,24 @@
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.1px;
+}
+
+/* Responsive grid */
+@media (max-width: 1024px) {
+  .history-response {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .history-content {
+    max-width: 100%;
+    padding: 0 var(--spacing-md);
+  }
+  
+  .history-response {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Animations - matches home animations */

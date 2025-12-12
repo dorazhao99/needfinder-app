@@ -101,12 +101,17 @@ Dora demonstrates extraordinary attention to detail, consistently verifying emai
 
 interface MakeSolutionParams {
     user_name: string;
+    insights: string[];
     scenario: string;
     limit: number;
 }
 
 export const make_solution = (params: MakeSolutionParams, use_insights: boolean = true) => {
     let prompt = ''; 
+    let fmt_insights = TEST_INSIGHTS;
+    if (params?.insight) {
+        fmt_insights = insights.join('\n');
+    }
     console.log(use_insights);
     if (use_insights) {
         prompt = `
@@ -127,7 +132,7 @@ export const make_solution = (params: MakeSolutionParams, use_insights: boolean 
         ${params.scenario}
     
         INSIGHTS:
-        ${TEST_INSIGHTS}
+        ${fmt_insights}
     
         IMPLEMENTATION CONSTRAINTS:
         ${IMPLEMENTATION_CONSTRAINTS}

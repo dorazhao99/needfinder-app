@@ -40,8 +40,10 @@
     "@mantine/core": "^8.3.9",
     "@mantine/hooks": "^8.3.9",
     "@tabler/icons-react": "^3.35.0",
+    "axios": "^1.13.2",
     "better-sqlite3": "^12.5.0",
     "electron-updater": "^6.3.9",
+    "node-cron": "^4.2.1",
     "openai": "^6.10.0"
   },
   "devDependencies": {

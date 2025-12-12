@@ -8,11 +8,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   checkSetup: () => ipcRenderer.invoke("check-setup"),
   getUser: () => ipcRenderer.invoke("user:get"),
   saveUser: (user: { name: string; file_dir: string }) => ipcRenderer.invoke("user:save", user),
-  saveSolutions: (solutions: { request: string; model: string; use_insights: boolean; solutions: { name: string; description: string; user_inputs: string; execution_prompt: string }[] }) => ipcRenderer.invoke("solutions:save", solutions),
+  saveSolutions: (solutions: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { name: string; description: string; user_inputs: string; execution_prompt: string }[] }) => ipcRenderer.invoke("solutions:save", solutions),
   selectSolution: (solution_id: number) => ipcRenderer.invoke("solutions:select", solution_id),
   getSolutions: (request_id: number) => ipcRenderer.invoke("solutions:get", request_id),
   getAllSolutions: () => ipcRenderer.invoke("solutions:getAll"),
   saveAgentResponse: (agent_response: { solution_id: number; agent_response: string; artifact_path: string }) => ipcRenderer.invoke("agent:response:save", agent_response),
+  getMergedInsights: () => ipcRenderer.invoke("insights:getMerged"),
   selectDirectory: () => ipcRenderer.invoke("select-directory"),
   getRecordingState: () => ipcRenderer.invoke("get-recording-state"),
   toggleRecording: () => ipcRenderer.invoke("toggle-recording"),
@@ -21,7 +22,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   callAgent: (message: string, solution_id: number) => ipcRenderer.invoke("call-agent", message, solution_id),
   closeOverlay: () => ipcRenderer.send("close-overlay"),
   pauseOverlayTimeout: () => ipcRenderer.send("pause-overlay-timeout"),
-  resumeOverlayTimeout: () => ipcRenderer.send("resume-overlay-timeout")
+  resumeOverlayTimeout: () => ipcRenderer.send("resume-overlay-timeout"),
+  getRelevantInsights: (query: string) => ipcRenderer.invoke("insights:getRelevant", query),
 });
 
 
