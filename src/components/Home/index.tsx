@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {Button, Switch} from '@mantine/core';
-import { IconArrowUp, IconRefresh } from '@tabler/icons-react';
+import { IconArrowUp, IconRefresh, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import SidePanel, { Solution } from '@/components/SidePanel';
 import { make_solution } from '@/prompts';
 import { parseModelJson } from '@/utils';
@@ -34,6 +34,7 @@ export default function Home({ userName }: HomeProps) {
   const [selectedSolution, setSelectedSolution] = useState<Solution | null>(null);
   const [useInsights, setUseInsights] = useState(true);
   const [selectedInsights, setSelectedInsights] = useState<string[]>([]);
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
 
   
   const handleSubmit = async () => {
@@ -193,15 +194,33 @@ export default function Home({ userName }: HomeProps) {
                 className="home-insights-switch"
               />
             </div>
-            {useInsights && selectedInsights.length > 0 ? (
-              <div className="home-response">
-                {selectedInsights.map((insight, index) => (
-                  <div key={index} style={{ marginBottom: '0.5rem' }}>
-                    {insight}
+            {useInsights && selectedInsights.length > 0 && (
+              <div className="home-insights-box">
+                <button
+                  className="home-insights-header"
+                  onClick={() => setIsInsightsOpen(!isInsightsOpen)}
+                >
+                  <span className="home-insights-title">
+                    Selected Insights ({selectedInsights.length})
+                  </span>
+                  {isInsightsOpen ? (
+                    <IconChevronUp size={20} />
+                  ) : (
+                    <IconChevronDown size={20} />
+                  )}
+                </button>
+                {isInsightsOpen && (
+                  <div className="home-insights-content">
+                    {selectedInsights.map((insight, index) => (
+                      <div key={index} className="home-insight-item">
+                        {insight}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            ) : response && (
+            )}
+            {!useInsights && response && (
               <div className="home-response">
                 {response}
               </div>

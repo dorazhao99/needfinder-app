@@ -37,7 +37,7 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
   return getUser();
 }
 
-function saveSolutions({ request, model, insight_ids, use_insights, solutions }: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
+function saveSolutions({ request, model, use_insights, insight_ids, solutions }: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
   const request_stmt = db.prepare(`
       INSERT into requests (description, created_at)
       VALUES (?, CURRENT_TIMESTAMP)
@@ -46,6 +46,7 @@ function saveSolutions({ request, model, insight_ids, use_insights, solutions }:
   const request_id = request_result.lastInsertRowid;
   
   if (use_insights) {
+    console.log("Saving insights: ", insight_ids);
     const insight_stmt = db.prepare(`
       INSERT into request_insights (request_id, insight_id)
       VALUES (?, ?)
@@ -152,8 +153,8 @@ ipcMain.handle('user:save', (event, { name, file_dir }) => {
   };
 });
 
-ipcMain.handle('solutions:save', (event, { request, model, use_insights, solutions }) => {
-  return saveSolutions({ request, model, use_insights, solutions });
+ipcMain.handle('solutions:save', (event, { request, model, use_insights, insight_ids, solutions }) => {
+  return saveSolutions({ request, model, use_insights, insight_ids, solutions });
 });
 
 ipcMain.handle('solutions:get', (event, { request_id }) => {
