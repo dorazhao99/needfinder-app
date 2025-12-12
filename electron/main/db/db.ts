@@ -58,13 +58,27 @@ export function initDatabase() {
         
         CREATE TABLE IF NOT EXISTS solutions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
             description TEXT NOT NULL,
+            user_inputs TEXT NOT NULL,
+            execution_prompt TEXT NOT NULL,
+            model TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            reframe_id INTEGER NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             request_id INTEGER NOT NULL,
             selected BOOLEAN NOT NULL DEFAULT FALSE,
-            FOREIGN KEY (reframe_id) REFERENCES reframes(id) ON DELETE CASCADE,
+            use_insights BOOLEAN NOT NULL DEFAULT TRUE,
             FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS agent_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            solution_id INTEGER NOT NULL,
+            agent_response TEXT NOT NULL,
+            artifact_path TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (solution_id) REFERENCES solutions(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS request_insights (

@@ -30,6 +30,7 @@ export default function Home({ userName }: HomeProps) {
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [solutionIds, setSolutionIds] = useState<number[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<Solution | null>(null);
   const [useInsights, setUseInsights] = useState(true);
 
@@ -50,7 +51,13 @@ export default function Home({ userName }: HomeProps) {
 
         console.log(result);
         if (result?.success && result.content) {
+
           const parsedJSON = parseModelJson(result.content);
+
+          // function saveSolutions({ request, model, use_insights, solutions }: { request: string; model: string; use_insights: boolean; solutions: { name: string; description: string; user_inputs: string; execution_prompt: string }[] }) {
+
+
+          
           let fmtSolutions = parsedJSON.map((solution: any) => ({
             solution: {
               name: solution.name,
@@ -59,11 +66,21 @@ export default function Home({ userName }: HomeProps) {
             agent_prompt: solution.execution_prompt,
             user_inputs: solution.user_inputs,
           }));
-          console.log(fmtSolutions);
 
+          let ids: number[] = await window.electronAPI?.saveSolutions({
+            request: query,
+            model: SOLUTION_MODEL,
+            use_insights: useInsights,
+            solutions: fmtSolutions,
+          });
+          console.log(ids);
+          
+          fmtSolutions.forEach((solution, index) => {
+            solution.id = ids[index];
+          });
           setSolutions(fmtSolutions);
+          setSolutionIds(ids);
           setLastQuery(query); // Store the query before clearing
-          setQuery(''); // Clear input after successful submission
         } else {
           setError(result?.error || 'Failed to get response from API');
         }
@@ -81,42 +98,42 @@ export default function Home({ userName }: HomeProps) {
     }
   };
 
-  const handleRefresh = async () => {
-    if (lastQuery.trim() && !isLoading) {
-      setIsLoading(true);
-      setError(null);
-      setResponse(null);
+  // const handleRefresh = async () => {
+  //   if (lastQuery.trim() && !isLoading) {
+  //     setIsLoading(true);
+  //     setError(null);
+  //     setResponse(null);
       
-      try {
-        const prompt = make_solution({
-          user_name: userName || 'User',
-          scenario: lastQuery,
-          limit: SOLUTION_LIMIT,
-        }, useInsights);
-        const result = await window.electronAPI?.callLLM(prompt, SOLUTION_MODEL);
+  //     try {
+  //       const prompt = make_solution({
+  //         user_name: userName || 'User',
+  //         scenario: lastQuery,
+  //         limit: SOLUTION_LIMIT,
+  //       }, useInsights);
+  //       const result = await window.electronAPI?.callLLM(prompt, SOLUTION_MODEL);
 
-        if (result?.success && result.content) {
-          const parsedJSON = JSON.parse(result.content);
-          let fmtSolutions = parsedJSON.map((solution: any) => ({
-            solution: {
-              name: solution.name,
-              description: solution.description,
-            },
-            agent_prompt: solution.execution_prompt,
-            user_inputs: solution.user_inputs,
-          }));
+  //       if (result?.success && result.content) {
+  //         const parsedJSON = JSON.parse(result.content);
+  //         let fmtSolutions = parsedJSON.map((solution: any) => ({
+  //           solution: {
+  //             name: solution.name,
+  //             description: solution.description,
+  //           },
+  //           agent_prompt: solution.execution_prompt,
+  //           user_inputs: solution.user_inputs,
+  //         }));
 
-          setSolutions(fmtSolutions);
-        } else {
-          setError(result?.error || 'Failed to get response from API');
-        }
-      } catch (err: any) {
-        setError(err.message || 'An error occurred while calling the API');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
+  //         setSolutions(fmtSolutions);
+  //       } else {
+  //         setError(result?.error || 'Failed to get response from API');
+  //       }
+  //     } catch (err: any) {
+  //       setError(err.message || 'An error occurred while calling the API');
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
 
   return (
     <div className="home-container">
@@ -179,7 +196,7 @@ export default function Home({ userName }: HomeProps) {
                 <div className="home-section-header">
                   <h3 className="home-section-title">Which of the following do you want me to do?</h3>
                   <Button
-                    onClick={handleRefresh}
+                    onClick={handleSubmit}
                     className="home-refresh-button"
                     disabled={isLoading || !lastQuery.trim()}
                     variant="subtle"

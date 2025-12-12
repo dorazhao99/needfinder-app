@@ -4,7 +4,7 @@ import { ChildProcess } from 'node:child_process';
 let pythonProcess: ChildProcess | null = null;
 
 
-export function callMCPAgent(prompt: string): Promise<{status: string, result?: any, error?: string}> {
+export function callMCPAgent(prompt: string, solution_id: number): Promise<{status: string, result?: any, error?: string}> {
     return new Promise((resolve, reject) => {
         const projectPath = "/Users/dorazhao/Documents/modelgardens-agents"
         const args = ["--task", prompt]
@@ -44,6 +44,13 @@ export function callMCPAgent(prompt: string): Promise<{status: string, result?: 
                 const lastLine = lines[lines.length - 1];
                 const result = JSON.parse(lastLine);
                 
+                // save agent response to db
+                window.electronAPI?.saveAgentResponse({
+                    solution_id: solution_id,
+                    agent_response: result.message,
+                    artifact_path: result.artifact_path,
+                });
+
                 if (result.status === "success") {
                     resolve(result);
                 } else {

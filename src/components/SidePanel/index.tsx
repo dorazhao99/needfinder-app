@@ -40,6 +40,8 @@ export default function SidePanel({ solution, onClose }: SidePanelProps) {
     setLoading(true);
     setError(null);
     setResponse(null);
+    window.electronAPI?.selectSolution(solution.id);
+
     try {
       console.log(inputValues);
       if (!solution.agent_prompt) {
@@ -48,7 +50,8 @@ export default function SidePanel({ solution, onClose }: SidePanelProps) {
       }
       const result = replacePlaceholders(solution.agent_prompt, inputValues);
       console.log(result);
-      const response = await window.electronAPI.callAgent(result);
+      const response = await window.electronAPI.callAgent(result, solution.id);
+      
       if (response.success) {
         if (response.message) {
           setResponse(response.message.message);

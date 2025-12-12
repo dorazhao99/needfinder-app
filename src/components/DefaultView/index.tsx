@@ -3,6 +3,7 @@ import { NavbarSimple } from '../NavBar';
 import Recorder from '../Recorder';
 import Settings from '../Settings';
 import Home from '../Home';
+import History from '../History';
 
 interface DefaultViewProps {
   userInfo: { name: string; file_dir: string } | null;
@@ -21,6 +22,7 @@ export default function DefaultView({ userInfo }: DefaultViewProps) {
       <div className="default-view">
         {activePage === 'Home' && <Home userName={userInfo?.name} />}
         {activePage === 'Recorder' && <Recorder />}
+        {activePage === 'History' && <History />}
         {activePage === 'Settings' && <Settings />}
       </div>
     </div>

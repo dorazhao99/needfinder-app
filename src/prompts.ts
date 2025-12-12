@@ -81,12 +81,22 @@ The proposed solutions must be actions or plans for a tool-calling agent. The ag
 Actions do NOT need to use all of the capabilities. Always defer to the most minimal implementation that can achieve the desired solution.
 `
 
-const TEST_INSIGHTS = `
-The Imposter Among Experts: Seeking Validation While Validating Others: Dora feels uncertain of her authority despite clear analytical strength, persistently seeking external benchmarks and community standards to authorize her decisions while rigorously critiquing others' work.
-Dora cross-references guidelines, community standards, and example outputs against her own work, seeking external validation to authorize her decisions. Simultaneously, she applies rigorous skepticism to others' methods and claims during reviews. This contradiction—doubting her own authority while confidently evaluating others—resembles imposter syndrome. It slows her decision-making, dampens trust in her expert judgment, and results in cautious over-calibration.
+// const TEST_INSIGHTS = `
+// The Imposter Among Experts: Seeking Validation While Validating Others: Dora feels uncertain of her authority despite clear analytical strength, persistently seeking external benchmarks and community standards to authorize her decisions while rigorously critiquing others' work.
+// Dora cross-references guidelines, community standards, and example outputs against her own work, seeking external validation to authorize her decisions. Simultaneously, she applies rigorous skepticism to others' methods and claims during reviews. This contradiction—doubting her own authority while confidently evaluating others—resembles imposter syndrome. It slows her decision-making, dampens trust in her expert judgment, and results in cautious over-calibration.
 
-Capable but Uncertain: The Confidence Gap in Technical Judgment: Despite strong technical ability, Dora feels uncertain about her judgment and over-relies on external validation—consulting AI tools, re-verifying work, and cross-referencing standards—before trusting her own decisions.
-Dora exhibits systematic technical skill and handles complex codebases with care, yet she frequently re-verifies her work, consults ChatGPT extensively, and hesitates before implementing changes. This over-validation behavior suggests either reduced confidence in her judgment or a high perceived cost of errors, possibly rooted in past negative experiences with production failures. The result is slower execution and diminished self-trust despite clear competence.
+// Capable but Uncertain: The Confidence Gap in Technical Judgment: Despite strong technical ability, Dora feels uncertain about her judgment and over-relies on external validation—consulting AI tools, re-verifying work, and cross-referencing standards—before trusting her own decisions.
+// Dora exhibits systematic technical skill and handles complex codebases with care, yet she frequently re-verifies her work, consults ChatGPT extensively, and hesitates before implementing changes. This over-validation behavior suggests either reduced confidence in her judgment or a high perceived cost of errors, possibly rooted in past negative experiences with production failures. The result is slower execution and diminished self-trust despite clear competence.
+// `
+
+const TEST_INSIGHTS = `
+1) Visibility as Both Support and Scrutiny: The Anxiety of Shared Work: Dora feels energized by collaborative visibility and accountability but also anxious under shared scrutiny, leading to heightened internal standards, repeated refinement, and cycles of self-questioning.
+
+Dora's work is highly visible through shared documents, tools, and ongoing feedback from collaborators. She is responsive and collegial, yet also cautious and self-questioning, leaving placeholders and repeatedly refining details. This visibility increases both accountability and support, but also heightens her internal standards and fuels perfectionism. The result is a cycle where collaboration both energizes and exhausts her.", 'context': 'Most relevant in collaborative environments with shared visibility—Overleaf/Google Docs, GitHub code review, Slack/email threads, dashboards (e.g., Prolific)—and when communicating with advisors or reviewers, or preparing graded or public-facing work.
+
+2) Meticulous to a Fault: Perfectionism as Anxiety Management: Dora feels anxious about errors and seeks reassurance through repeated verification, double-checking, and micro-adjustments, but this meticulousness reinforces self-doubt rather than building confidence.
+
+Dora demonstrates extraordinary attention to detail, consistently verifying emails, schedules, terminology, sources, and outputs with high precision. However, the repetition and oscillation between micro-editing and macro synthesis suggest underlying anxiety, perfectionism, and difficulty settling on 'good enough.' This meticulousness elevates quality but creates bottlenecks, slows decision-making, and may signal a lack of trust in her own judgment. The perfectionism functions as both a driver of rigor and a blocker of progress.
 `
 
 interface MakeSolutionParams {
