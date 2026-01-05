@@ -1,16 +1,15 @@
-import { BrowserWindow, ipcMain, dialog, app, shell } from 'electron';
+import { BrowserWindow, ipcMain, dialog, app, shell, Notification, screen } from 'electron';
 import { startRecording, stopRecording } from '../services/recording';
 import { closeOverlay, pauseOverlayTimeout, resumeOverlayTimeout } from '../services/detectMicrophone';
 import { isRecording } from '../index';
 import { isScreenRecordingAllowed } from '../index'
 import { callMCPAgent } from '../services/agent'
+import { callLLM } from '../services/llm'
 import { setRecordingState } from '../index';
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -22,17 +21,122 @@ export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
-const GPT_MODELS = {
-  "gpt-4.1": "gpt-4.1",
-  "gpt-4.1-mini": "gpt-4.1-mini",
-  "gpt-5": "gpt-5",
+// Helper function to show a notification that stays longer
+export function showLongNotification(title: string, body: string) {
+  if (os.platform() === 'darwin') {
+    // On macOS, use a custom notification window since timeoutType isn't supported
+    const notificationWindow = new BrowserWindow({
+      width: 350,
+      height: 120,
+      frame: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      transparent: true,
+      resizable: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+
+    // Position in top-right corner
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth } = primaryDisplay.workAreaSize;
+    notificationWindow.setPosition(screenWidth - 370, 20);
+
+    // Create HTML content for the notification
+    const notificationHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              margin: 0;
+              padding: 15px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: rgba(30, 30, 30, 0.95);
+              color: white;
+              border-radius: 10px;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+              overflow: hidden;
+              cursor: pointer;
+            }
+            body:hover {
+              background: rgba(40, 40, 40, 0.95);
+            }
+            .title {
+              font-weight: 600;
+              font-size: 14px;
+              margin-bottom: 5px;
+            }
+            .body {
+              font-size: 12px;
+              color: rgba(255, 255, 255, 0.8);
+              word-wrap: break-word;
+              max-height: 60px;
+              overflow-y: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="title">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          <div class="body">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </body>
+      </html>
+    `;
+
+    notificationWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(notificationHTML)}`);
+    notificationWindow.show();
+
+    // Generate unique ID for this notification
+    const notificationId = `notification-${Date.now()}`;
+
+    // Allow click to close the notification immediately via IPC
+    notificationWindow.webContents.on('dom-ready', () => {
+      notificationWindow?.webContents.executeJavaScript(`
+        const { ipcRenderer } = require('electron');
+        document.body.addEventListener('click', () => {
+          ipcRenderer.send('close-notification', '${notificationId}');
+        });
+      `);
+    });
+
+    // Handle close request from renderer
+    const closeHandler = (_: any, id: string) => {
+      if (id === notificationId && notificationWindow && !notificationWindow.isDestroyed()) {
+        notificationWindow.close();
+        ipcMain.removeListener('close-notification', closeHandler);
+      }
+    };
+    ipcMain.on('close-notification', closeHandler);
+
+    // Auto-close after 20 seconds (longer duration - change this value to make it stay longer)
+    const closeTimeout = setTimeout(() => {
+      if (notificationWindow && !notificationWindow.isDestroyed()) {
+        notificationWindow.close();
+        ipcMain.removeListener('close-notification', closeHandler);
+      }
+    }, 20000); // 20 seconds - adjust this value as needed
+
+    // Clear timeout and handler when window is closed
+    notificationWindow.once('closed', () => {
+      clearTimeout(closeTimeout);
+      ipcMain.removeListener('close-notification', closeHandler);
+    });
+  } else {
+    // On Windows/Linux, use native notification with timeoutType
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title,
+        body,
+        silent: false,
+        timeoutType: 'never' as any, // Type assertion needed as TypeScript types may not include this
+      });
+      notification.show();
+    }
+  }
 }
 
-const CLAUDE_MODELS = {
-  "claude-4.5-sonnet": "claude-sonnet-4-5",
-  "claude-4.5-haiku": "claude-haiku-4-5",
-  "claude-4.5-opus": "claude-opus-4-5",
-}
 
 
 // Get the main window reference - this will be set by index.ts
@@ -74,6 +178,7 @@ const writePreferences = (prefs: { name: string; screenshotDirectory: string }) 
 
 // Listen for button click from renderer
 // New window example arg: new windows url
+
 ipcMain.handle('open-win', (_, arg) => {
     const childWindow = new BrowserWindow({
       webPreferences: {
@@ -88,7 +193,7 @@ ipcMain.handle('open-win', (_, arg) => {
     } else {
       childWindow.loadFile(indexHtml, { hash: arg })
     }
-  })
+})
 
   
 ipcMain.on("run-python", (event) => {
@@ -169,15 +274,22 @@ ipcMain.handle("open-system-settings", () => {
   return true;
 });
 
-ipcMain.handle("call-agent", async (_, prompt: string) => {
+ipcMain.handle("call-agent", async (_, prompt: string, solution_id: number) => {
   try {
-    const response = await callMCPAgent(prompt);
+    const response = await callMCPAgent(prompt, solution_id);
     console.log("Agent response:", response);
+    
+    // Show notification that stays longer
+    showLongNotification('Agent completed', response.result);
+    
     return {
       success: true,
       message: response.result
     };
   } catch (error: any) {
+    // Show notification that stays longer
+    showLongNotification('Agent Error', `Agent error: ${error.message}`);
+    
     return {
       success: false,
       error: error.message
@@ -185,57 +297,10 @@ ipcMain.handle("call-agent", async (_, prompt: string) => {
   }
 });
 
-// Call Anthropic API
+// Call LLM API (delegates to shared service)
 ipcMain.handle("call-llm", async (_, message: string, model: string) => {
-  try {
-    // Dynamic import to avoid issues if package is not installed
-    console.log(model, message)
-    if (model in GPT_MODELS) {
-      const gpt = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-      const response = await gpt.chat.completions.create({
-        model: GPT_MODELS[model],
-        messages: [
-          {
-            role: 'user',
-            content: message,
-          },
-        ],
-      });
-      return {
-        success: true,
-        content: response.choices[0].message.content,
-      };
-    } else if (model in CLAUDE_MODELS) {
-      const claude = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-
-      const response = await claude.messages.create({
-        model: CLAUDE_MODELS[model],
-        max_tokens: 5000,
-        messages: [
-          {
-            role: 'user',
-            content: message,
-          },
-        ],
-      });
-      return {
-        success: true,
-        content: response.content[0].text,
-      };
-    } else {
-      throw new Error(`Model ${model} not supported`);
-    }
-  } catch (error: any) {
-    console.error('LLM API error:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to call LLM API',
-    };
-  }
+  console.log(model, message);
+  return await callLLM(message, model);
 });
 
    

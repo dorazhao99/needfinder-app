@@ -3,6 +3,7 @@ import path from 'node:path'
 import { startRecording } from '../services/recording'
 import { stopRecording } from '../services/recording'
 import { app } from 'electron'
+import { inferActions } from '../services/inferActions'
 
 
 export function createTray(win: BrowserWindow) {
@@ -35,6 +36,13 @@ export function createTray(win: BrowserWindow) {
         label: "Pause Recording",
         click: () => {
           stopRecording();
+        },
+      },
+      { type: 'separator' },
+      {
+        label: "Infer Actions",
+        click: () => {
+          inferActions();
         },
       },
       { type: 'separator' },

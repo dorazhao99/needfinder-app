@@ -3,7 +3,7 @@ import path from 'node:path'
 import { app } from 'electron'
 
 
-let db;
+let db: Database.Database | undefined;
 
 export function initDatabase() {
     const dbPath = path.join(app.getPath('userData'), 'app.db');
@@ -91,6 +91,13 @@ export function initDatabase() {
         );
 
     `)
+  }
+
+  export function getDb(): Database.Database {
+    if (!db) {
+      throw new Error('Database not initialized. Call initDatabase() first.');
+    }
+    return db;
   }
 
   export { db }

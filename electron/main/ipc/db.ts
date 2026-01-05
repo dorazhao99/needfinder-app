@@ -1,14 +1,16 @@
 import { ipcMain } from 'electron';
-import { db } from '../db/db.ts';
+import { getDb } from '../db/db';
 
 // Helper: get user row (id = 1)
 function getUser() {
+  const db = getDb();
   const stmt = db.prepare('SELECT * FROM user WHERE id = 1');
   return stmt.get() || null;
 }
 
 // Helper: upsert user row (id = 1)
 function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
+  const db = getDb();
   const existing = db
     .prepare('SELECT id FROM user WHERE id = 1')
     .get();
@@ -38,6 +40,7 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
 }
 
 function saveSolutions({ request, model, use_insights, insight_ids, solutions }: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
+  const db = getDb();
   const request_stmt = db.prepare(`
       INSERT into requests (description, created_at)
       VALUES (?, CURRENT_TIMESTAMP)
@@ -82,22 +85,24 @@ function saveSolutions({ request, model, use_insights, insight_ids, solutions }:
 }
 
 function selectSolution({ solution_id }: { solution_id: number }) {
+  const db = getDb();
   const stmt = db.prepare(`
     SELECT * FROM solutions WHERE id = ?
   `);
   const solution = stmt.get(solution_id);
   if (solution) {
-    const stmt = db.prepare(`
+    const updateStmt = db.prepare(`
       UPDATE solutions
-      selected = TRUE, updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
+      SET selected = TRUE, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
     `);
-    stmt.run();
+    updateStmt.run(solution_id);
   }
   return null;
 }
 
 function saveAgentResponse({ solution_id, agent_response, artifact_path }: { solution_id: number; agent_response: string; artifact_path: string }) {
+  const db = getDb();
   const stmt = db.prepare(`
     INSERT into agent_responses (solution_id, agent_response, artifact_path, created_at)
     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
@@ -107,13 +112,15 @@ function saveAgentResponse({ solution_id, agent_response, artifact_path }: { sol
 }
 
 function getSolutions({ request_id }: { request_id: number }) {
+  const db = getDb();
   const stmt = db.prepare(`
     SELECT * FROM solutions WHERE request_id = ?
   `);
-  return stmt.get(request_id);
+  return stmt.all(request_id);
 }
 
 function getAllSolutions() {
+  const db = getDb();
   const stmt = db.prepare(`
     SELECT * FROM solutions
   `);
@@ -121,6 +128,7 @@ function getAllSolutions() {
 }
 
 function getMergedInsights() {
+  const db = getDb();
   const stmt = db.prepare(`
     SELECT * FROM insights
     WHERE metainsight = TRUE
@@ -131,6 +139,7 @@ function getMergedInsights() {
 
 // IPC: check if user exists
 ipcMain.handle('user:exists', () => {
+  const db = getDb();
   const row = db.prepare('SELECT 1 FROM user WHERE id = 1').get();
   return !!row;
 });
