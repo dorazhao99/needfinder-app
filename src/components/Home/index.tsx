@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {Button, Switch} from '@mantine/core';
 import { IconArrowUp, IconRefresh, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import SidePanel, { Solution } from '@/components/SidePanel';
@@ -35,6 +35,28 @@ export default function Home({ userName }: HomeProps) {
   const [useInsights, setUseInsights] = useState(true);
   const [selectedInsights, setSelectedInsights] = useState<string[]>([]);
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Listen for inferred actions from the main process
+  useEffect(() => {
+    const handleInferredActions = (_event: any, content: string) => {
+      setQuery(content);
+    };
+
+    window.ipcRenderer?.on('inferred-actions', handleInferredActions);
+
+    return () => {
+      window.ipcRenderer?.off('inferred-actions', handleInferredActions);
+    };
+  }, []);
+
+  // Auto-resize textarea when query changes programmatically
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [query]);
 
   
   const handleSubmit = async () => {
@@ -106,10 +128,18 @@ export default function Home({ userName }: HomeProps) {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSubmit();
     }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setQuery(e.target.value);
+    // Auto-resize textarea
+    e.target.style.height = 'auto';
+    e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
   // const handleRefresh = async () => {
@@ -163,15 +193,16 @@ export default function Home({ userName }: HomeProps) {
                 Record a few sessions to unlock insights.
             </h4> */}
             <div className="home-input-wrapper">
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
                 placeholder="What can I help you with?"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleTextareaChange}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 className={`home-input ${isFocused ? 'focused' : ''}`}
+                rows={1}
               />
               <Button
                 onClick={handleSubmit}
