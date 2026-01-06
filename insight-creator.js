@@ -13,7 +13,59 @@ dotenv.config();
 // need to send via args
 const user_name = "Dora";
 const dbPath = "/Users/dorazhao/Library/Application Support/Lilac/app.db"
+const TEST_TRACES = [
+  "Dora is writing a job statement for her advisor.",
+  "Dora is checking her email.",
+  "Dora is checking her calendar.",
+  "Dora is checking her tasks.",
+  "Dora is checking her notes.",
+  "Dora is checking her documents.",
+  "Dora sends an email to her advisor asking for feedback on the job statement."
+]
 
+const TEST_INSIGHTS =  {
+  insights: [{
+    title: 'Multitasking and context-switching increases cognitive load',
+    insight: 'Dora multitasks between composing the job statement and consulting email, calendar, tasks, and notes, which likely raises cognitive load and may slow progress or increase errors. Frequent context-switching while drafting can fragment attention and make revision or synthesis harder. This pattern may reduce efficiency or the quality of sustained focus.',
+    context: 'Relevant during drafting or editing sessions when multiple information streams or notifications are present and when maintaining coherence requires extended attention.',
+    supporting_evidence: 'Dora is actively writing the job statement while repeatedly checking her email, calendar, tasks, and notes, suggesting ongoing context-switching that increases cognitive demands.'
+  },
+  {
+    title: 'Advisor functions as editor/gatekeeper',
+    insight: "Dora treats the advisor as an essential reviewer whose approval influences her next steps, positioning the advisor as an editor or gatekeeper. Her explicit request for feedback signals that she expects the advisor's confirmation or improvements before finalizing the statement. This dynamic suggests the advisor's opinion materially affects Dora's decisions and timeline.",
+    context: 'Applies in supervisory relationships where a mentor or advisor has evaluative authority or where their approval is required for progression on applications, submissions, or role-related documents.',
+    supporting_evidence: "Dora emails her advisor asking for feedback on the job statement and appears concerned about deadlines and expectations tied to the advisor, indicating the advisor's review is a gating factor for her next actions."
+  }
+]
+}
+// const TEST_TRACES = {
+//   observations: [
+//     {
+//       id: "87",
+//       description: "Switching between reviewing experimental papers, analyzing lab schedules in Google Sheets, and referencing class materials on Canvas may suggest a moderate cognitive load or a need to juggle multiple academic responsibilities simultaneously.",
+//       evidence: 
+//         "In a short timespan, Dora reviews the 'Hedonic and Instrumental Motives in Anger Regulation' paper, checks the 'SALT Lab Meeting Fall 2025' Google Sheet, and navigates the Canvas syllabus for 'Experimental Methods,' indicating multitasking across different academic resources."
+//       ,
+//       confidence: 5
+//     },
+//     {
+//       id: "88",
+//       description: "Dora Zhao appears to be highly focused and cognitively engaged in developing and debugging the `Transcriber.py` Python script, iterating through methods to integrate new features.",
+//       evidence: 
+//         "Dora makes targeted edits to functions like `get_actions()` and `observer_pipeline()` in `Transcriber.py`, navigates through related project files, and responds to code placeholders (e.g., `# INSERT_YOUR_CODE`). This pattern of hands-on code insertion and dynamic selection in Visual Studio Code suggests a deep state of concentration and problem-solving."
+//       ,
+//       confidence: 7
+//     },
+//     {
+//       id: "89",
+//       description: "There is potential for some mild uncertainty or self-reflection as Dora works through code sections with placeholders and incomplete logic, likely evaluating how best to implement or debug the required functionality.",
+//       evidence: 
+//         "The presence of comments such as `# INSERT YOUR CODE` and navigation between related methods in the `Transcriber` class, alongside edits and the use of code completion suggestions, implies active deliberation on how to progress or solve issues in the codebase."
+//       ,
+//       confidence: 6
+//     }
+//   ]
+// }
 
 const WINDOW_SIZE = 10; 
 const CONTEXT_SIZE = 5; 
@@ -341,7 +393,7 @@ Your task is to produce a set of insights given observations about a user.
 
 An "Insight" is a remarkable realization that you could leverage to better respond to a design challenge. Insights often grow from contradictions between two user observations or from asking yourself “Why?” when you notice strange behavior. One way to identify the seeds of insights is to capture “tensions” and “contradictions” as you work.
 
-Given this input, produce at least ${INSIGHT_LIMIT} insights about ${user_name}. Focus only on the insights, not on potential solutions for the design challenge.
+Given this input, produce at least ${INSIGHT_LIMIT} insights about ${user_name}. Focus only on the insights, not on potential solutions for the design challenge. Provide both the insights and evidence from the input that support the insight in the output. 
 
 # Input
 You are provided these traits from direct observation about what ${user_name} is doing and feeling:
@@ -369,28 +421,35 @@ Return your results in this exact JSON format:
             "title": "Thematic title of the insight",
             "insight": "Insight in 3-4 sentences",
             "context": "[1-2 sentences when this insight might apply (e.g., when writing text, in social settings)]",
+            "supporting_evidence": "[1-2 sentences providing specific evidence from the input, explicitly naming entities, supporting this insight]",
         }}, 
         {{
             "title": "Thematic title of the insight",
             "insight": "Insight in 3-4 sentences",
             "context": "[1-2 sentences when this insight might apply (e.g., when writing text, in social settings)]",
+            "supporting_evidence": "[1-2 sentences providing specific evidence from the input, explicitly naming entities, supporting this insight]",
         }}
         ...
     ]
 }}
 `
-  const fmt_insights = await callLLM([{type: "text", text: JSON_FORMAT}], "gpt-5-mini");
-
-  return fmt_insights;
+  const json_insights = await callLLM([{type: "text", text: JSON_FORMAT}], "gpt-5-mini");
+  if (json_insights.success && json_insights.content) {
+    const fmt_insights = JSON.parse(json_insights.content);
+    return fmt_insights;
+  } else {
+    console.error("Error calling LLM: ", json_insights.error);
+    return { insights: [] };
+  }
 }
 
 const saveDB = (insights) => {
   const db = new betterSqlite3(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("busy_timeout = 5000");
-  const stmt = db.prepare('INSERT INTO insights (title, insight, context) VALUES (?, ?, ?)');
-  for (const insight of insights) {
-    stmt.run(insight.title, insight.insight, insight.context);
+  const stmt = db.prepare('INSERT INTO insights (title, tagline, description, context, supporting_evidence, metainsight) VALUES (?, ?, ?, ?, ?, ?)');
+  for (const insight of insights.insights) {
+    stmt.run(insight.title, "", insight.insight, insight.context, insight.supporting_evidence, 0);
   }
   db.close();
 }
@@ -400,11 +459,10 @@ const saveDB = (insights) => {
   const out = `/tmp/recordr.nightly.last_run.json`;
   const interaction_traces = await processTraces();
   console.log("interaction_traces: ", interaction_traces);
-  // const interaction_traces = ["test"]
   const insights = await getInsights(interaction_traces);
   console.log("insights: ", insights);
-  // saveDB(insights);
-  fs.writeFileSync(out, JSON.stringify({ ok: true, ranAt: stamp }, null, 2));
+  saveDB(insights);
+  fs.writeFileSync(out, JSON.stringify({ ok: true, ranAt: stamp, traces: interaction_traces, insights: insights}, null, 2));
   process.exit(0);
 })().catch((err) => {
   console.error("error: ", err)
