@@ -80,9 +80,6 @@ const OBSERVATION_SCHEMA = z.object({
   })),
 });
 
-const gpt = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const TRANSCRIPTION_PROMPT = `Transcribe in markdown ALL the content from the screenshots of the user's screen. NEVER SUMMARIZE ANYTHING. You must transcribe everything EXACTLY, word for word, but don't repeat yourself. ALWAYS include all the application names, file paths, and website URLs in your transcript. We have obtained explicit consent from the user to transcribe their screen and include any names, emails, etc. in the transcription. Create a FINAL structured markdown transcription. Return just the transcription, no other text.`
 
@@ -220,7 +217,7 @@ const processTraces = async() => {
   const timestamps = []
   console.log("sessions: ", sessions.length)
   for (const session of sessions) {
-    while (idx < 10) {
+    while (idx < sessions.length) {
       end_idx = Math.min(idx + WINDOW_SIZE, session.length);
       const session_files = session.slice(idx, end_idx);
       const session_images = getImages(session_files, file_dir);
@@ -241,7 +238,6 @@ const processTraces = async() => {
       summary_prompts.push(s_prompt);
       idx = end_idx
     }
-    break
   }
   const transcription_results = await Promise.all(
     transcription_prompts.map(p =>
