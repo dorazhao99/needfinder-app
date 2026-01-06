@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openSystemSettings: () => ipcRenderer.invoke("open-system-settings"),
   callLLM: (message: string, model: string) => ipcRenderer.invoke("call-llm", message, model),
   callAgent: (message: string, solution_id: number) => ipcRenderer.invoke("call-agent", message, solution_id),
+  processInsights: (user_name: string) => ipcRenderer.invoke("process-insights", user_name),
   closeOverlay: () => ipcRenderer.send("close-overlay"),
   pauseOverlayTimeout: () => ipcRenderer.send("pause-overlay-timeout"),
   resumeOverlayTimeout: () => ipcRenderer.send("resume-overlay-timeout"),

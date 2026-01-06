@@ -15,7 +15,7 @@ interface Insight {
 
 async function getRelevantInsights(query: string) {
   console.log("Query: ", query);
-  const insights = getMergedInsights();
+  const insights = getMergedInsights() as Insight[];
   const insightIds: number[] = [];
   const fmtInsights: string[] = [];
   insights.forEach((insight: Insight) => {

@@ -6,6 +6,7 @@ import './side-panel.css';
 import { replacePlaceholders, isEmptyString } from '@/utils';
 
 export interface Solution {
+  id: number;
   solution: {
     name: string;
     description: string;
@@ -55,9 +56,10 @@ export default function SidePanel({ solution, onClose }: SidePanelProps) {
       if (response.success) {
         if (response.message) {
           setResponse(response.message.message);
-          const isArtifact = isEmptyString(response.message?.artifact_uri || '');
+          const artifactUri = response.message?.artifact_uri || '';
+          const isArtifact = isEmptyString(artifactUri);
           if (isArtifact) {
-            setArtifacts(response.message.artifact_uri);
+            setArtifacts([artifactUri]);
           }
         } else {
           setError("Sorry, something went wrong.");

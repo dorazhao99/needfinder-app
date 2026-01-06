@@ -108,8 +108,9 @@ async function takeScreenshot() {
 export async function inferActions() {
     console.log("Inferring actions...");
     const user = getUser();
+    const name = user?.name || '';
     const prompt = `
-        I have the following SCREENSHOT that the current user ${user?.name || ''} is working on:
+        I have the following SCREENSHOT that the current user ${name} is working on:
 
         Now, employ the following reasoning framework when inferring the goals.
 

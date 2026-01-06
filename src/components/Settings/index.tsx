@@ -9,6 +9,7 @@ export default function Settings({ onPageChange }: SettingsProps) {
   const [name, setName] = useState('');
   const [selectedDirectory, setSelectedDirectory] = useState('');
   const [isFocused, setIsFocused] = useState({ name: false, directory: false });
+  const [processingInsights, setProcessingInsights] = useState(false);
 
   useEffect(() => {
     // Load current preferences
@@ -47,6 +48,18 @@ export default function Settings({ onPageChange }: SettingsProps) {
     }
   };
 
+  const processInsights = async () => {
+    setProcessingInsights(true);
+    console.log('Processing insights');
+    const response = await window.electronAPI?.processInsights(name);
+    if (response.success) {
+      console.log('Insights processed successfully');
+    } else {
+      console.error('Error processing insights');
+    }
+    setProcessingInsights(false);
+  };
+
   return (
     <div className="settings-container">
       {/* Animated Background Orbs */}
@@ -57,7 +70,6 @@ export default function Settings({ onPageChange }: SettingsProps) {
       <div className="settings-content">
         <div className="settings-header">
           <h1 className="settings-title">Settings</h1>
-          <p className="settings-subtitle">Manage your preferences</p>
         </div>
 
         <div className="settings-card">
@@ -108,6 +120,21 @@ export default function Settings({ onPageChange }: SettingsProps) {
             Save Changes
           </button>
         </div>
+        <button
+            type="button"
+            onClick={processInsights}
+            disabled={false}
+            className={`settings-save-button ${selectedDirectory && name.length >= 2 ? 'enabled' : 'disabled'}`}
+          >
+            Process Insights
+        </button>
+        {
+          processingInsights && (
+            <div>
+              Processing insights... This may take a few minutes.
+            </div>
+          )
+        }
       </div>
     </div>
   );

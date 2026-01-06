@@ -17,25 +17,25 @@ export function callMCPAgent(prompt: string, solution_id: number): Promise<{stat
         let outputData = '';
         let errorData = '';
 
-        pythonProcess.stdout.on('data', (data) => {
+        pythonProcess?.stdout?.on('data', (data) => {
             const chunk = data.toString();
             console.log(`Agent log: ${chunk.trim()}`);
             outputData += chunk;
         });
 
-        pythonProcess.stderr.on('data', (data) => {
+        pythonProcess?.stderr?.on('data', (data) => {
             const chunk = data.toString();
             console.error(`Agent stderr: ${chunk}`);
             errorData += chunk;
         });
 
-        pythonProcess.on("error", (error) => {
+        pythonProcess?.on("error", (error) => {
             console.error("Failed to start Python script:", error);
             reject(error);
             pythonProcess = null;
         });
         
-        pythonProcess.on("exit", (code) => {
+        pythonProcess?.on("exit", (code) => {
             console.log(`Python script exited with code ${code}`);
             
             try {

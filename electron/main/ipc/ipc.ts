@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, dialog, app, shell, Notification, screen } from
 import { startRecording, stopRecording } from '../services/recording';
 import { closeOverlay, pauseOverlayTimeout, resumeOverlayTimeout } from '../services/detectMicrophone';
 import { isRecording } from '../index';
+import { processInsights } from '../services/processInsights';
 import { isScreenRecordingAllowed } from '../index'
 import { callMCPAgent } from '../services/agent'
 import { callLLM } from '../services/llm'
@@ -301,6 +302,22 @@ ipcMain.handle("call-agent", async (_, prompt: string, solution_id: number) => {
 ipcMain.handle("call-llm", async (_, message: string, model: string) => {
   console.log(model, message);
   return await callLLM(message, model);
+});
+
+ipcMain.handle("process-insights", async (_, user_name: string) => {
+  try {
+    await processInsights(user_name);
+    return {
+      success: true,
+      message: "Insights processed successfully"
+    };
+  } catch (error: any) {
+    console.error("Error processing insights:", error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
 });
 
    

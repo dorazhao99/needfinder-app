@@ -1,11 +1,19 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../db/db';
 
+interface User {
+  id: number;
+  name: string;
+  file_dir: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Helper: get user row (id = 1)
-function getUser() {
+function getUser(): User | null {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM user WHERE id = 1');
-  return stmt.get() || null;
+  return (stmt.get() as User) || null;
 }
 
 // Helper: upsert user row (id = 1)
@@ -16,7 +24,8 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
     .get();
 
  
-    console.log(name, file_dir)
+  console.log(name, file_dir)
+  try {
   if (existing) {
     const stmt = db.prepare(`
       UPDATE user
@@ -25,7 +34,7 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
     `);
     stmt.run(name, file_dir);
     console.log(stmt)
-
+    return {success: true, user: {id: 1, name, file_dir}};
   } else {
     const stmt = db.prepare(`
       INSERT INTO user (id, name, file_dir)
@@ -33,10 +42,12 @@ function saveUser({ name, file_dir}: { name: string; file_dir: string}) {
     `);
     stmt.run(name, file_dir);
     console.log(stmt)
-
+    return {success: true, user: {id: 1, name, file_dir}};
   }
-
-  return getUser();
+  } catch (error) {
+    console.error("Error saving user: ", error);
+    return {success: false, error: "Error saving user"};
+  }
 }
 
 function saveSolutions({ request, model, use_insights, insight_ids, solutions }: { request: string; model: string; insight_ids: number[]; use_insights: boolean; solutions: { solution: { name: string; description: string;}, user_inputs: string; agent_prompt: string }[] }) {
@@ -79,7 +90,7 @@ function saveSolutions({ request, model, use_insights, insight_ids, solutions }:
       use_insights_num,
       request_id,
     );
-    solution_ids.push(solution_result.lastInsertRowid);
+    solution_ids.push(Number(solution_result.lastInsertRowid));
   });
   return solution_ids;
 }
@@ -155,11 +166,7 @@ ipcMain.handle('user:save', (event, { name, file_dir }) => {
     throw new Error('name and file_dir are required');
   }
 
-  const user = saveUser({ name, file_dir });
-  return {
-    success: true,
-    user,
-  };
+  return saveUser({ name, file_dir });
 });
 
 ipcMain.handle('solutions:save', (event, { request, model, use_insights, insight_ids, solutions }) => {

@@ -54,9 +54,11 @@ export async function callLLM(message : string | any[], model: string): Promise<
           },
         ],
       });
+      const firstBlock = response.content[0];
+      const textContent = firstBlock && firstBlock.type === 'text' ? firstBlock.text : '';
       return {
         success: true,
-        content: response.content[0].text,
+        content: textContent || '',
       };
     } else {
       throw new Error(`Model ${model} not supported`);

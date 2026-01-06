@@ -111,7 +111,7 @@ export default function Home({ userName }: HomeProps) {
           });
           console.log(ids);
           
-          fmtSolutions.forEach((solution, index) => {
+          fmtSolutions.forEach((solution: Solution, index: number) => {
             solution.id = ids[index];
           });
           setSolutions(fmtSolutions);

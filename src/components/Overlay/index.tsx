@@ -10,24 +10,24 @@ export default function Overlay() {
   const [isSaved, setIsSaved] = useState(false)
   const progressBarRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    // Listen for call status updates from main process
-    const handleCallStatus = (_event: Electron.IpcRendererEvent, status: boolean) => {
-      setIsCallActive(status)
-    }
+  // useEffect(() => {
+  //   // Listen for call status updates from main process
+  //   const handleCallStatus = (_event: Electron.IpcRendererEvent, status: boolean) => {
+  //     setIsCallActive(status)
+  //   }
 
-    // Register listener if electronAPI is available
-    if (window.electronAPI) {
-      window.electronAPI.onCallStatus?.(handleCallStatus)
-    }
+  //   // Register listener if electronAPI is available
+  //   if (window.electronAPI) {
+  //     window.electronAPI.onCallStatus?.(handleCallStatus)
+  //   }
 
-    return () => {
-      // Cleanup listener if needed
-      if (window.electronAPI?.removeCallStatusListener) {
-        window.electronAPI.removeCallStatusListener(handleCallStatus)
-      }
-    }
-  }, [])
+  //   return () => {
+  //     // Cleanup listener if needed
+  //     if (window.electronAPI?.removeCallStatusListener) {
+  //       window.electronAPI.removeCallStatusListener(handleCallStatus)
+  //     }
+  //   }
+  // }, [])
 
   // Pause timeout when overlay is focused/interacted with
   const pauseTimeout = () => {
@@ -127,13 +127,13 @@ export default function Overlay() {
 
   return (
     <div className="overlay-container">
-      <button 
+      <button
         className="overlay-close-button"
         onClick={handleClose}
         aria-label="Close overlay"
       >
         <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
       <div className="overlay-content">

@@ -6,6 +6,7 @@ import { ChildProcess } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { getUser } from '../ipc/db'
 import { setScreenRecordingNotAllowed } from '../index'
+import { DEFAULT_FILE_DIR } from '../consts'
 
 let pythonProcess: ChildProcess | null = null;
 
@@ -36,7 +37,7 @@ export function startRecording() {
       // Get user's file_dir from database
       const user = getUser();
       console.log("User:", user);
-      const file_dir = user?.file_dir; 
+      const file_dir = user?.file_dir || DEFAULT_FILE_DIR; 
       
       const scriptPath = getRecording();
       console.log(`Starting Python script from: ${scriptPath}`);
@@ -53,7 +54,7 @@ export function startRecording() {
         }
       );
     
-      pythonProcess.on("error", (error) => {
+      pythonProcess?.on("error", (error) => {
         console.error("Failed to start Python script:", error);
         if (error.message.includes("Screen capture not allowed")) {
             setScreenRecordingNotAllowed();
@@ -62,12 +63,12 @@ export function startRecording() {
         pythonProcess = null;
       });
     
-      pythonProcess.on("exit", (code) => {
+      pythonProcess?.on("exit", (code) => {
         console.log(`Python script exited with code ${code}`);
         pythonProcess = null;
       });
     
-      pythonProcess.unref(); // let Python run independently
+      pythonProcess?.unref(); // let Python run independently
     
       console.log(`Python script started in background from: ${scriptDir}`);
     } else {

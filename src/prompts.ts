@@ -1,4 +1,4 @@
-export const make_reframe = (params) => {
+export const make_reframe = (params: { user_name: string; insights: string[]; scenario: string; insight_lim: number, hmw_lim: number }) => {
     const prompt = `You are an expert in design-thinking, specializing in the EMPATHIZE and DEFINE steps, combining **empathic insight analysis** with the **"How Might We" (HMW)** framework for creative problem reframing and solution generation.
 
     Your goal is to understand the human behind the query and use empathy, context, and creative reasoning to generate solutions that aligns with their deeper needs or goals.
@@ -109,8 +109,8 @@ interface MakeSolutionParams {
 export const make_solution = (params: MakeSolutionParams, use_insights: boolean = true) => {
     let prompt = ''; 
     let fmt_insights = TEST_INSIGHTS;
-    if (params?.insight) {
-        fmt_insights = insights.join('\n');
+    if (params?.insights) {
+        fmt_insights = params.insights.join('\n');
     }
     console.log(use_insights);
     if (use_insights) {
