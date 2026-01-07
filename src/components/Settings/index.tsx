@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { IconX, IconAlertTriangle, IconLoader2 } from '@tabler/icons-react';
 import './settings.css';
 
 interface SettingsProps {
@@ -10,6 +11,9 @@ export default function Settings({ onPageChange }: SettingsProps) {
   const [selectedDirectory, setSelectedDirectory] = useState('');
   const [isFocused, setIsFocused] = useState({ name: false, directory: false });
   const [processingInsights, setProcessingInsights] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [success, setSuccess] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load current preferences
@@ -48,16 +52,29 @@ export default function Settings({ onPageChange }: SettingsProps) {
     }
   };
 
-  const processInsights = async () => {
+  const handleProcessInsightsClick = () => {
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmProcess = async () => {
+    setShowConfirmation(false);
     setProcessingInsights(true);
+    setError(null); // Clear any previous errors
+    setSuccess(false); // Clear any previous success
     console.log('Processing insights');
     const response = await window.electronAPI?.processInsights(name);
     if (response.success) {
       console.log('Insights processed successfully');
+      setSuccess(true);
     } else {
       console.error('Error processing insights');
+      setError(response.message || 'An error occurred while processing insights');
     }
     setProcessingInsights(false);
+  };
+
+  const handleCancelProcess = () => {
+    setShowConfirmation(false);
   };
 
   return (
@@ -122,11 +139,18 @@ export default function Settings({ onPageChange }: SettingsProps) {
         </div>
         <button
             type="button"
-            onClick={processInsights}
-            disabled={false}
-            className={`settings-save-button ${selectedDirectory && name.length >= 2 ? 'enabled' : 'disabled'}`}
+            onClick={handleProcessInsightsClick}
+            disabled={processingInsights || !selectedDirectory || name.length < 2}
+            className={`settings-save-button ${selectedDirectory && name.length >= 2 && !processingInsights ? 'enabled' : 'disabled'}`}
           >
-            Process Insights
+            {processingInsights ? (
+              <>
+                <IconLoader2 size={18} className="settings-loading-icon" />
+                Processing...
+              </>
+            ) : (
+              'Process Insights'
+            )}
         </button>
         {
           processingInsights && (
@@ -135,7 +159,62 @@ export default function Settings({ onPageChange }: SettingsProps) {
             </div>
           )
         }
+        {
+          error && error.length > 0 && (
+            <div className="settings-error-message">
+              <IconAlertTriangle size={20} />
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="settings-error-close"
+              >
+                <IconX size={16} />
+              </button>
+            </div>
+          )
+        }
       </div>
+
+      {/* Confirmation Popup */}
+      {showConfirmation && (
+        <div className="settings-confirmation-overlay" onClick={handleCancelProcess}>
+          <div className="settings-confirmation-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="settings-confirmation-close" onClick={handleCancelProcess}>
+              <IconX size={20} />
+            </button>
+            
+            <div className="settings-confirmation-content">
+              <div className="settings-confirmation-icon">
+                <IconAlertTriangle size={32} />
+              </div>
+              
+              <h2 className="settings-confirmation-title">Review Screenshots Before Processing</h2>
+              
+              <p className="settings-confirmation-message">
+                Please review all screenshots saved in the directory to remove any private or confidential information before proceeding with processing insights.
+              </p>
+              
+              <div className="settings-confirmation-buttons">
+                <button 
+                  className="settings-confirmation-button-primary"
+                  onClick={handleConfirmProcess}
+                >
+                  Proceed
+                </button>
+                
+                <button 
+                  className="settings-confirmation-button-secondary"
+                  onClick={handleCancelProcess}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      )}
     </div>
   );
 }
