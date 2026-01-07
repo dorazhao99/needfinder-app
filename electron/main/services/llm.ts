@@ -5,6 +5,7 @@ const GPT_MODELS: Record<string, string> = {
   "gpt-4.1": "gpt-4.1",
   "gpt-4.1-mini": "gpt-4.1-mini",
   "gpt-5": "gpt-5",
+  "gpt-5-mini": "gpt-5-mini",
 }
 
 const CLAUDE_MODELS: Record<string, string> = {
@@ -20,13 +21,13 @@ export interface LLMResponse {
 }
 
 
-export async function callLLM(message : string | any[], model: string): Promise<LLMResponse> {
+export async function callLLM(message : string | any[], model: string, response_format?: any): Promise<LLMResponse> {
   try {
     if (model in GPT_MODELS) {
       const gpt = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
-      const response = await gpt.chat.completions.create({
+      let input = {
         model: GPT_MODELS[model],
         messages: [
           {
@@ -34,7 +35,13 @@ export async function callLLM(message : string | any[], model: string): Promise<
             content: message,
           },
         ],
-      });
+      }
+
+      if (response_format) {
+        input.response_format = response_format;
+      }
+
+      const response = await gpt.chat.completions.create(input);
       return {
         success: true,
         content: response.choices[0].message.content || undefined,

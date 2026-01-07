@@ -1,3 +1,19 @@
+export const MODEL_SELECTION = {
+    "transcription": "gpt-5-mini",
+    "observation": "gpt-4.1",
+    "insight": "claude-4.5-sonnet",
+    "format": "gpt-4.1",
+    "synthesis": "claude-4.5-sonnet"
+}
+
+export const DEV_MODEL_SELECTION = {
+    "transcription": "gpt-5-mini",
+    "observation": "gpt-5-mini",
+    "insight": "gpt-5-mini",
+    "format": "gpt-5-mini",
+    "synthesis": "gpt-5-mini"
+}
+
 export const DEFAULT_FILE_DIR = '~/.cache/recordr';
 export const WINDOW_SIZE = 10; 
 export const CONTEXT_SIZE = 5; 

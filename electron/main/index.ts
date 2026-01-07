@@ -42,6 +42,7 @@ export let isRecording = false;
 export let isScreenRecordingAllowed = true;
 let win: BrowserWindow | null;
 let tray: Tray | null = null
+let isQuitting = false;
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -84,10 +85,19 @@ async function createWindow() {
     return { action: 'deny' }
   })
 
-  // Handle window close - hide instead of closing
+  // Handle window close - hide instead of closing, unless quitting
   win.on("close", (e) => {
-    e.preventDefault();
-    win?.hide();
+    if (!isQuitting) {
+      e.preventDefault();
+      win?.hide();
+    }
+  });
+  
+  // Clean up when window is actually closed (only when quitting)
+  win.on("closed", () => {
+    if (isQuitting) {
+      win = null;
+    }
   });
 }
 
@@ -104,13 +114,17 @@ function createTray() {
     {
       label: `Open ${app.getName()}`,
       click: () => {
-        if (!win) {
+        if (!win || win.isDestroyed()) {
           createWindow(); // recreate if it was actually destroyed
+        } else {
+          if (!win.isVisible()) {
+            win.show();
+          }
+          if (win.isMinimized()) {
+            win.restore();
+          }
+          win.focus();
         }
-        if (!win?.isVisible()) {
-          win?.show();
-        }
-        win?.focus();
       },
     },
     { type: 'separator' },
@@ -147,6 +161,7 @@ function createTray() {
     {
       label: "Quit",
       click: () => {
+        isQuitting = true;
         app.quit();
       },
     }
@@ -170,9 +185,32 @@ export function setScreenRecordingNotAllowed() {
   }
 }
 
+// Set up application menu with keyboard shortcuts
+function createApplicationMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: process.platform === 'darwin' ? app.getName() : 'File',
+      submenu: [
+        {
+          label: process.platform === 'darwin' ? `Quit ${app.getName()}` : 'Quit',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+          click: () => {
+            isQuitting = true;
+            app.quit();
+          },
+        },
+      ],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 app.whenReady().then(async() => {
   console.log("Node:", process.versions.node);
   initDatabase();
+  createApplicationMenu();
   createWindow();
   createTray();
   startMonitoring();
@@ -184,7 +222,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('second-instance', () => {
-  if (win) {
+  if (win === null || win.isDestroyed()) {
+    createWindow()
+  } else {
     // Focus on the main window if the user tried to open another
     if (win.isMinimized()) win.restore()
     win.focus()
@@ -192,11 +232,17 @@ app.on('second-instance', () => {
 })
 
 app.on('activate', () => {
-  const allWindows = BrowserWindow.getAllWindows()
-  if (allWindows.length) {
-    allWindows[0].focus()
-  } else {
+  if (win === null || win.isDestroyed()) {
     createWindow()
+  } else {
+    // Show the window if it's hidden
+    if (!win.isVisible()) {
+      win.show()
+    }
+    if (win.isMinimized()) {
+      win.restore()
+    }
+    win.focus()
   }
 })
 

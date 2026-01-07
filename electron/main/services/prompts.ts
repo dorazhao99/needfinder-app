@@ -132,3 +132,38 @@ export const formatJSONPrompt = (insights: string) => {
     `
     return JSON_PROMPT;
 }
+
+export const formatMetaInsightPrompt = (insights: string, user_name: string, session_num: number) => {
+    const META_INSIGHT_PROMPT = `
+I have insights across multiple sessions of observing ${user_name} along with the context in which the insight emerges. 
+Your task is to help synthesize across the insights and produce a final set of insights about ${user_name}.
+
+Across the insights, consider the following when combining them: 
+1. Which insights appear across most of them as a recurring theme or pattern?
+2. Which appear only in specific situations or for specific people?
+3. Which insights contradict each other — and what might that reveal about unique tensions?
+
+# Input
+These are the insight generated across ${session_num} sessions of observation.
+
+${insights}
+
+# Output
+Return the final list of insights in a JSON format.  When writing the insight and tagline, emphasize language about what ${user_name} is feeling or what is motivating them. 
+
+{{
+    "insights": [
+        {{
+            "title": "Thematic title of the insight",
+            "tagline": "Provide the insight in a succinct statement (1-2 sentences).", 
+            "insight": "Insight in 3-4 sentences",
+            "context": "1-2 sentences when this insight might apply (e.g., when writing text, in social settings)",
+            "merged": [List of insight IDs (Session #-ID) that are merged], // Return a list with a single ID if the insight is not merged
+            "reasoning": "Explain the reasoning behind the insight"
+        }},
+    ...
+    ]
+}}
+`
+    return META_INSIGHT_PROMPT;
+}

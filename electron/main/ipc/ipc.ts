@@ -306,11 +306,8 @@ ipcMain.handle("call-llm", async (_, message: string, model: string) => {
 
 ipcMain.handle("process-insights", async (_, user_name: string) => {
   try {
-    await processInsights(user_name);
-    return {
-      success: true,
-      message: "Insights processed successfully"
-    };
+    const resp = await processInsights(user_name);
+    return resp;
   } catch (error: any) {
     console.error("Error processing insights:", error);
     return {
