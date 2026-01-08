@@ -95,16 +95,17 @@ function saveSolutions({ request, model, use_insights, insight_ids, solutions }:
   return solution_ids;
 }
 
-function selectSolution({ solution_id }: { solution_id: number }) {
+function selectSolution(solution_id: number) {
   const db = getDb();
   const stmt = db.prepare(`
     SELECT * FROM solutions WHERE id = ?
   `);
   const solution = stmt.get(solution_id);
+  console.log("Selected solution: ", solution, solution_id);
   if (solution) {
     const updateStmt = db.prepare(`
       UPDATE solutions
-      SET selected = TRUE, updated_at = CURRENT_TIMESTAMP
+      SET selected = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
     updateStmt.run(solution_id);
@@ -112,7 +113,7 @@ function selectSolution({ solution_id }: { solution_id: number }) {
   return null;
 }
 
-function saveAgentResponse({ solution_id, agent_response, artifact_path }: { solution_id: number; agent_response: string; artifact_path: string }) {
+export function saveAgentResponse({ solution_id, agent_response, artifact_path }: { solution_id: number; agent_response: string; artifact_path: string }) {
   const db = getDb();
   const stmt = db.prepare(`
     INSERT into agent_responses (solution_id, agent_response, artifact_path, created_at)
@@ -181,8 +182,8 @@ ipcMain.handle('solutions:getAll', () => {
   return getAllSolutions();
 });
 
-ipcMain.handle('solutions:select', (event, { solution_id }) => {
-  return selectSolution({ solution_id });
+ipcMain.handle('solutions:select', (event, solution_id) => {
+  return selectSolution(solution_id);
 });
 
 ipcMain.handle('agent:response:save', (event, { solution_id, agent_response, artifact_path }) => {

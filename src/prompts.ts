@@ -161,7 +161,6 @@ export const make_solution = (params: MakeSolutionParams, use_insights: boolean 
                 {{
                     "placeholder_name": "Name of placeholder in the prompt where the input will be added", 
                     "description": "Description of input", 
-                    "modality": [TEXTBOX]
                 }}
             ],
             "execution_prompt": "The execution prompt that will be fed to the agent",

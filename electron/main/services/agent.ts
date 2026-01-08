@@ -1,8 +1,15 @@
+import { isEmptyString } from '@/utils';
 import { spawn } from 'node:child_process';
 import { ChildProcess } from 'node:child_process';
-
+import { saveAgentResponse } from '../ipc/db';
 let pythonProcess: ChildProcess | null = null;
 
+
+function isEmptyString(str: string): boolean {
+    // Remove all quotes (single and double) and whitespace
+    const cleaned = str.replace(/["'\s]/g, '');
+    return cleaned.length === 0;
+}
 
 export function callMCPAgent(prompt: string, solution_id: number): Promise<{status: string, result?: any, error?: string}> {
     return new Promise((resolve, reject) => {
@@ -41,28 +48,44 @@ export function callMCPAgent(prompt: string, solution_id: number): Promise<{stat
             try {
                 // Get the last line (which should be the JSON output)
                 const lines = outputData.trim().split('\n');
+                console.log('Lines', lines);
                 const lastLine = lines[lines.length - 1];
                 const result = JSON.parse(lastLine);
                 
-                // save agent response to db
-                window.electronAPI?.saveAgentResponse({
-                    solution_id: solution_id,
-                    agent_response: result.message,
-                    artifact_path: result.artifact_path,
-                });
 
                 if (result.status === "success") {
+                    // save agent response to db
+                    const artifactPath = result.result.artifact_uri;
+                    const isArtifact = isEmptyString(artifactPath);
+                    const savedArtifact = isArtifact ? artifactPath : "";
+                    saveAgentResponse({
+                        solution_id: solution_id,
+                        agent_response: result.result.message,
+                        artifact_path: savedArtifact,
+                    });
                     resolve(result);
                 } else {
                     // Python caught an exception
                     reject(new Error(result.error));
                 }
             } catch (error) {
+                console.error('Error:', error);
                 reject(new Error(`Failed to parse output: ${outputData}`));
             }
             
             pythonProcess = null;
         });
     });
+}
+
+export function stopAgent() {
+  if (pythonProcess && !pythonProcess.killed) {
+    try {
+      pythonProcess.kill();
+      pythonProcess = null;
+    } catch (error) {
+      console.error('Error killing agent process:', error);
+    }
+  }
 }
 

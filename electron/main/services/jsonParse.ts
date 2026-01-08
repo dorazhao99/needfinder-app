@@ -111,6 +111,22 @@ export function parseModelJson(
         // Strip trailing commas before closing braces/brackets
         sanitised = sanitised.replace(/,(\s*[}\]])/g, '$1');
         
+        // Fix unquoted identifiers in arrays: [IDENTIFIER] -> ["IDENTIFIER"]
+        // Matches [ followed by optional whitespace, then an unquoted identifier (word starting with letter/underscore),
+        // then optional whitespace and ]. The identifier can be uppercase, lowercase, or mixed case.
+        sanitised = sanitised.replace(/\[\s*([A-Za-z_][A-Za-z0-9_]*)\s*\]/g, '["$1"]');
+        
+        // Fix unquoted identifiers as array elements: [..., IDENTIFIER, ...] -> [..., "IDENTIFIER", ...]
+        // This handles cases like [item1, item2, TEXTBOX] where TEXTBOX is unquoted
+        // Match unquoted identifiers that appear after a comma or at the start of an array
+        sanitised = sanitised.replace(/(\[[^\]]*?),\s*([A-Za-z_][A-Za-z0-9_]*)\s*([,\]])/g, '$1, "$2"$3');
+        sanitised = sanitised.replace(/(\[)\s*([A-Za-z_][A-Za-z0-9_]*)\s*([,\]])/g, '$1"$2"$3');
+        
+        // Fix unquoted identifiers as property values: "key": IDENTIFIER -> "key": "IDENTIFIER"
+        // This handles cases like "modality": TEXTBOX (without brackets)
+        // Also handles single quotes: 'modality': TEXTBOX
+        sanitised = sanitised.replace(/(["']:\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*[,\}])/g, '$1"$2"$3');
+        console.log('Sanitised', sanitised, 'Pre-parsed', snippet);
         try {
             if (logger) {
                 logger("Parsed JSON after sanitising LLM output.");

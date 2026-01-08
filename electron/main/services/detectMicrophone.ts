@@ -311,5 +311,18 @@ export function stopMonitoring() {
     clearInterval(micMonitoringInterval);
     micMonitoringInterval = null;
   }
+  
+  // Kill the micWatcher process if it's running
+  if (micWatcherProc && !micWatcherProc.killed) {
+    try {
+      micWatcherProc.kill();
+      micWatcherProc = null;
+    } catch (error) {
+      console.error('Error killing micWatcher process:', error);
+    }
+  }
+  
+  // Close overlay if open
+  closeOverlay();
 }
 

@@ -41,6 +41,7 @@ export default function SidePanel({ solution, onClose }: SidePanelProps) {
     setLoading(true);
     setError(null);
     setResponse(null);
+    console.log("solution id", solution, solution.id)
     window.electronAPI?.selectSolution(solution.id);
 
     try {
@@ -49,18 +50,22 @@ export default function SidePanel({ solution, onClose }: SidePanelProps) {
         setError("Agent prompt is missing.");
         return;
       }
-      const result = replacePlaceholders(solution.agent_prompt, inputValues);
-      console.log(result);
+      // const result = replacePlaceholders(solution.agent_prompt, inputValues);
+      // console.log(result);
+      const result = "Return 1 + 1"
       const response = await window.electronAPI.callAgent(result, solution.id);
+      console.log('Agent response', response);
       
       if (response.success) {
         if (response.message) {
-          setResponse(response.message.message);
-          const artifactUri = response.message?.artifact_uri || '';
+          const result = response.message?.result;
+          setResponse(result?.message);
+          const artifactUri = result?.artifact_uri || '';
           const isArtifact = isEmptyString(artifactUri);
           if (isArtifact) {
             setArtifacts([artifactUri]);
           }
+          
         } else {
           setError("Sorry, something went wrong.");
         }

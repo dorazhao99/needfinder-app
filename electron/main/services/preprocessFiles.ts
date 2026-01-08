@@ -67,4 +67,15 @@ export function startPreprocess(file_dir: string): Promise<void> {
       }
     });
   }
+
+export function stopPreprocess() {
+  if (pythonProcess && !pythonProcess.killed) {
+    try {
+      pythonProcess.kill();
+      pythonProcess = null;
+    } catch (error) {
+      console.error('Error killing preprocess process:', error);
+    }
+  }
+}
   

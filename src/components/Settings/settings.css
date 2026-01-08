@@ -488,3 +488,147 @@
   }
 }
 
+/* Terminal Interface */
+.settings-terminal-container {
+  margin-top: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), var(--shadow-inset);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.settings-terminal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.settings-terminal-clear {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.settings-terminal-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--glass-border-hover);
+  color: var(--text-secondary);
+}
+
+.settings-terminal {
+  background: #0a0a0a;
+  color: #00ff00;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.settings-terminal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-terminal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.settings-terminal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.settings-terminal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-terminal-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.settings-terminal-line:last-child {
+  margin-bottom: 0;
+}
+
+.settings-terminal-timestamp {
+  color: #666;
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.settings-terminal-prompt {
+  color: #00ff00;
+  font-weight: 600;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.settings-terminal-text {
+  color: #e0e0e0;
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.settings-terminal-line-info .settings-terminal-text {
+  color: #87ceeb;
+}
+
+.settings-terminal-line-success .settings-terminal-text {
+  color: #00ff00;
+}
+
+.settings-terminal-line-error .settings-terminal-text {
+  color: #ff4444;
+}
+
+.settings-terminal-line-system .settings-terminal-text {
+  color: #ffff00;
+}
+
+.settings-terminal-cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+  color: #00ff00;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+

@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconX, IconAlertTriangle, IconLoader2 } from '@tabler/icons-react';
 import './settings.css';
 
 interface SettingsProps {
   onPageChange?: (page: string) => void;
+}
+
+interface TerminalMessage {
+  timestamp: string;
+  message: string;
+  type: 'info' | 'success' | 'error' | 'system';
 }
 
 export default function Settings({ onPageChange }: SettingsProps) {
@@ -14,6 +20,8 @@ export default function Settings({ onPageChange }: SettingsProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [success, setSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load current preferences
@@ -24,6 +32,44 @@ export default function Settings({ onPageChange }: SettingsProps) {
       }
     });
   }, []);
+
+  // Listen for preprocessing events
+  useEffect(() => {
+    const handlePreprocessComplete = () => {
+      const timestamp = new Date().toLocaleTimeString();
+      setTerminalMessages(prev => [...prev, {
+        timestamp,
+        message: `✓ Preprocessing completed successfully.`,
+        type: 'success'
+      }]);
+    };
+
+    const handlePreprocessError = (_event: Electron.IpcRendererEvent, errorMessage: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      setTerminalMessages(prev => [...prev, {
+        timestamp,
+        message: `✗ Preprocessing error: ${errorMessage}`,
+        type: 'error'
+      }]);
+    };
+
+    if (window.ipcRenderer) {
+      window.ipcRenderer.on('preprocess-complete', handlePreprocessComplete);
+      window.ipcRenderer.on('preprocess-error', handlePreprocessError);
+      
+      return () => {
+        window.ipcRenderer.off('preprocess-complete', handlePreprocessComplete);
+        window.ipcRenderer.off('preprocess-error', handlePreprocessError);
+      };
+    }
+  }, []);
+
+  // Auto-scroll terminal to bottom when new messages arrive
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalMessages]);
 
   const handleSelectDirectory = async () => {
     const directory = await window.electronAPI?.selectDirectory();
@@ -61,14 +107,35 @@ export default function Settings({ onPageChange }: SettingsProps) {
     setProcessingInsights(true);
     setError(null); // Clear any previous errors
     setSuccess(false); // Clear any previous success
+    setTerminalMessages([]); // Clear previous terminal messages
+    
+    const timestamp = new Date().toLocaleTimeString();
+    setTerminalMessages(prev => [...prev, {
+      timestamp,
+      message: 'Starting preprocessing...',
+      type: 'system'
+    }]);
+    
     console.log('Processing insights');
     const response = await window.electronAPI?.processInsights(name);
     if (response.success) {
       console.log('Insights processed successfully');
       setSuccess(true);
+      const successTimestamp = new Date().toLocaleTimeString();
+      setTerminalMessages(prev => [...prev, {
+        timestamp: successTimestamp,
+        message: '✓ Insights processed successfully',
+        type: 'success'
+      }]);
     } else {
       console.error('Error processing insights');
       setError(response.message || 'An error occurred while processing insights');
+      const errorTimestamp = new Date().toLocaleTimeString();
+      setTerminalMessages(prev => [...prev, {
+        timestamp: errorTimestamp,
+        message: `✗ Error: ${response.message || 'An error occurred while processing insights'}`,
+        type: 'error'
+      }]);
     }
     setProcessingInsights(false);
   };
@@ -152,13 +219,45 @@ export default function Settings({ onPageChange }: SettingsProps) {
               'Process Insights'
             )}
         </button>
-        {
-          processingInsights && (
-            <div>
-              Processing insights... This may take a few minutes.
+        
+        {/* Terminal Interface */}
+        {(terminalMessages.length > 0 || processingInsights) && (
+          <div className="settings-terminal-container">
+            <div className="settings-terminal-header">
+              <div className="settings-terminal-title">Processing Log</div>
+              <button
+                type="button"
+                onClick={() => setTerminalMessages([])}
+                className="settings-terminal-clear"
+                title="Clear log"
+              >
+                <IconX size={16} />
+              </button>
             </div>
-          )
-        }
+            <div className="settings-terminal" ref={terminalRef}>
+              {terminalMessages.length === 0 && processingInsights && (
+                <div className="settings-terminal-line">
+                  <span className="settings-terminal-prompt">$</span>
+                  <span className="settings-terminal-text">Waiting for preprocessing to start...</span>
+                </div>
+              )}
+              {terminalMessages.map((msg, index) => (
+                <div key={index} className={`settings-terminal-line settings-terminal-line-${msg.type}`}>
+                  <span className="settings-terminal-timestamp">[{msg.timestamp}]</span>
+                  <span className="settings-terminal-prompt">$</span>
+                  <span className="settings-terminal-text">{msg.message}</span>
+                </div>
+              ))}
+              {processingInsights && (
+                <div className="settings-terminal-line">
+                  <span className="settings-terminal-prompt">$</span>
+                  <span className="settings-terminal-text settings-terminal-cursor">_</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {
           error && error.length > 0 && (
             <div className="settings-error-message">

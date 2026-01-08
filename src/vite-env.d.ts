@@ -26,7 +26,7 @@ interface Window {
     openSystemSettings: () => Promise<boolean>,
     // LLM functions
     callLLM: (message: string, model: string) => Promise<{ success: boolean; content?: string; error?: string }>,
-    callAgent: (message: string, solution_id: number) => Promise<{ success: boolean; message?: { message: string; artifact_uri?: string }; error?: string }>,
+    callAgent: (message: string, solution_id: number) => Promise<{ success: boolean; message?: { result: { message: string; artifact_uri?: string } }; error?: string }>,
     // Insights functions
     getRelevantInsights: (query: string) => Promise<{insights: string[]; insightIds: number[]}>,
     processInsights: (user_name: string) => Promise<{ success: boolean; message?: string; error?: string }>,

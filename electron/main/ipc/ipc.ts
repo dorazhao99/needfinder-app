@@ -281,14 +281,13 @@ ipcMain.handle("open-system-settings", () => {
 ipcMain.handle("call-agent", async (_, prompt: string, solution_id: number) => {
   try {
     const response = await callMCPAgent(prompt, solution_id);
-    console.log("Agent response:", response);
     
     // Show notification that stays longer
-    showLongNotification('Agent completed', response.result);
+    showLongNotification('Agent completed', response.result.message);
     
     return {
       success: true,
-      message: response.result
+      message: response
     };
   } catch (error: any) {
     // Show notification that stays longer

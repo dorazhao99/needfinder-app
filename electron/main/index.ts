@@ -3,7 +3,9 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { startRecording, stopRecording } from './services/recording'
-import { startMonitoring } from './services/detectMicrophone'
+import { startMonitoring, stopMonitoring } from './services/detectMicrophone'
+import { stopPreprocess } from './services/preprocessFiles'
+import { stopAgent } from './services/agent'
 import { initDatabase } from './db/db'
 import './ipc/ipc'
 import './ipc/db'
@@ -244,6 +246,68 @@ app.on('activate', () => {
     }
     win.focus()
   }
+})
+
+// Cleanup function to stop all child processes
+function cleanup() {
+  console.log('Cleaning up child processes...')
+  stopRecording()
+  stopMonitoring()
+  stopPreprocess()
+  stopAgent()
+  
+  // Close all windows
+  const allWindows = BrowserWindow.getAllWindows()
+  allWindows.forEach(window => {
+    if (!window.isDestroyed()) {
+      window.close()
+    }
+  })
+  
+  // Destroy tray
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
+}
+
+// Handle app quit - cleanup before quitting
+app.on('before-quit', (e) => {
+  isQuitting = true
+  cleanup()
+})
+
+// Handle process signals (SIGINT, SIGTERM) - important for dev server shutdown
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down...')
+  isQuitting = true
+  cleanup()
+  // Force exit after a short delay to ensure cleanup completes
+  setTimeout(() => {
+    app.quit()
+    process.exit(0)
+  }, 100)
+})
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down...')
+  isQuitting = true
+  cleanup()
+  // Force exit after a short delay to ensure cleanup completes
+  setTimeout(() => {
+    app.quit()
+    process.exit(0)
+  }, 100)
+})
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error)
+  cleanup()
+  setTimeout(() => {
+    app.quit()
+    process.exit(1)
+  }, 100)
 })
 
 

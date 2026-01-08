@@ -81,8 +81,29 @@ export function startRecording() {
 export function stopRecording() {
     if (pythonProcess) {
       console.log("Stopping Python script...");
-      pythonProcess.kill();
-      pythonProcess = null;
+      try {
+        // Try graceful kill first
+        if (!pythonProcess.killed) {
+          pythonProcess.kill();
+          
+          // Force kill after a short delay if still running
+          setTimeout(() => {
+            if (pythonProcess && !pythonProcess.killed) {
+              console.log("Force killing Python script...");
+              try {
+                pythonProcess.kill('SIGKILL');
+              } catch (e) {
+                // SIGKILL might not be available on all platforms
+                pythonProcess.kill();
+              }
+            }
+          }, 1000);
+        }
+        pythonProcess = null;
+      } catch (error) {
+        console.error('Error stopping Python script:', error);
+        pythonProcess = null;
+      }
     } else {
       console.log("No Python script running to stop");
     }
