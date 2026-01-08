@@ -152,7 +152,7 @@ def capture_active_screen(output_dir: str = "~/Desktop", filename: Optional[str]
         output_path = os.path.join(output_dir, filename)
         
         # Save the image
-        img.save(output_path, "PNG")
+        img.save(output_path, "PNG", overwrite=True)
         print(f"Screenshot saved to: {output_path}")
         
         return output_path

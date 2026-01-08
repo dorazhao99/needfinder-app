@@ -8,69 +8,66 @@ import { getUser } from '../ipc/db'
 import { setScreenRecordingNotAllowed } from '../index'
 import { DEFAULT_FILE_DIR } from '../consts'
 
-let pythonProcess: ChildProcess | null = null;
+let childProcess: ChildProcess | null = null;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.join(__dirname, '../..')
 
+
 function getRecording() {
-    if (!app.isPackaged) {
-       // dev: try dist-electron first (where vite plugin copies it), then fallback to source
-       const distPath = path.join(APP_ROOT, 'dist-electron', 'main', 'record.py')
-       const sourcePath = path.join(APP_ROOT, 'electron', 'main', 'record.py')
-       
-       // Check if file exists in dist-electron (built by vite plugin)
-       if (fs.existsSync(distPath)) {
-         return distPath
-       }
-       // Fallback to source location
-       return sourcePath
-      }
+  if (!app.isPackaged) {
+    // dev: try dist-electron first (where vite plugin copies it), then fallback to source
+    const distPath = path.join(APP_ROOT, 'dist-electron', 'assets', 'macos', 'record')
+    const sourcePath = path.join(APP_ROOT, 'assets', 'macos', 'record')
     
-      // prod: inside the .app Resources
-      return path.join(process.resourcesPath, 'micwatcher', 'MicWatcher');
+    // Check if file exists in dist-electron (built by vite plugin)
+    if (fs.existsSync(distPath)) {
+      return distPath
+    }
+    // Fallback to source location
+    return sourcePath
   }
+
+  // prod: inside the .app Resources
+  return path.join(process.resourcesPath, 'record', 'record');
+}
 
 export function startRecording() {
     // Stop existing process if running
-    if (!pythonProcess) {
+    console.log(childProcess);
+    if (!childProcess) {
       // Get user's file_dir from database
       const user = getUser();
       console.log("User:", user);
       const file_dir = user?.file_dir || DEFAULT_FILE_DIR; 
       
-      const scriptPath = getRecording();
-      console.log(`Starting Python script from: ${scriptPath}`);
-      const scriptDir = path.dirname(scriptPath);
+      const executablePath = getRecording();
       
-      const uvCmd = "uv"
     
-      pythonProcess = spawn(
-        uvCmd,
-        ["run", "python", scriptPath, "--file-dir", file_dir],
+      childProcess = spawn(
+        executablePath,
+        ["--file-dir", file_dir],
         {
-          cwd: scriptDir,            // so uv sees pyproject.toml
           stdio: ["inherit", "inherit", "inherit"],
         }
       );
     
-      pythonProcess?.on("error", (error) => {
+      childProcess?.on("error", (error) => {
         console.error("Failed to start Python script:", error);
         if (error.message.includes("Screen capture not allowed")) {
             setScreenRecordingNotAllowed();
             return;
         }
-        pythonProcess = null;
+        childProcess = null;
       });
     
-      pythonProcess?.on("exit", (code) => {
+      childProcess?.on("exit", (code) => {
         console.log(`Python script exited with code ${code}`);
-        pythonProcess = null;
+        childProcess = null;
       });
     
-      pythonProcess?.unref(); // let Python run independently
+      childProcess?.unref(); // let Python run independently
     
-      console.log(`Python script started in background from: ${scriptDir}`);
     } else {
       console.log("Python script already running");
     }
@@ -79,30 +76,30 @@ export function startRecording() {
   }
   
 export function stopRecording() {
-    if (pythonProcess) {
+    if (childProcess) {
       console.log("Stopping Python script...");
       try {
         // Try graceful kill first
-        if (!pythonProcess.killed) {
-          pythonProcess.kill();
+        if (!childProcess.killed) {
+          childProcess.kill();
           
           // Force kill after a short delay if still running
           setTimeout(() => {
-            if (pythonProcess && !pythonProcess.killed) {
+            if (childProcess && !childProcess.killed) {
               console.log("Force killing Python script...");
               try {
-                pythonProcess.kill('SIGKILL');
+                childProcess.kill('SIGKILL');
               } catch (e) {
                 // SIGKILL might not be available on all platforms
-                pythonProcess.kill();
+                childProcess.kill();
               }
             }
           }, 1000);
         }
-        pythonProcess = null;
+        childProcess = null;
       } catch (error) {
         console.error('Error stopping Python script:', error);
-        pythonProcess = null;
+        childProcess = null;
       }
     } else {
       console.log("No Python script running to stop");

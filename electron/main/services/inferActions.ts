@@ -15,45 +15,48 @@ import { showLongNotification } from '../ipc/ipc'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.join(__dirname, '../..')
 
-let pythonProcess: ChildProcess | null = null;
+let childProcess: ChildProcess | null = null;
+
+
 
 function getScreenshot() {
-    // dev: try dist-electron first (where vite plugin copies it), then fallback to source
-    const distPath = path.join(APP_ROOT, 'dist-electron', 'main', 'screenshot.py')
-    const sourcePath = path.join(APP_ROOT, 'electron', 'main', 'screenshot.py')
-    
-    // Check if file exists in dist-electron (built by vite plugin)
-    if (fs.existsSync(distPath)) {
+    if (!app.isPackaged) {
+      // dev: try dist-electron first (where vite plugin copies it), then fallback to source
+      const distPath = path.join(APP_ROOT, 'dist-electron', 'assets', 'macos', 'screenshot')
+      const sourcePath = path.join(APP_ROOT, 'assets', 'macos', 'screenshot')
+      
+      // Check if file exists in dist-electron (built by vite plugin)
+      if (fs.existsSync(distPath)) {
         return distPath
+      }
+      // Fallback to source location
+      return sourcePath
     }
-    // Fallback to source location
-    return sourcePath
+  
+    // prod: inside the .app Resources
+    return path.join(process.resourcesPath, 'screenshot', 'screenshot');
 }
 
 async function takeScreenshot() {
     console.log("Taking screenshot...");
-    const scriptPath = getScreenshot();
-    console.log(`Starting Python script from: ${scriptPath}`);
-    const scriptDir = path.dirname(scriptPath);
-    
-    const uvCmd = "uv"
+    const executablePath = getScreenshot();
+   
     const screenshotPath = path.join(os.homedir(), '.cache', 'recordr_screenshot.jpg');
   
     return new Promise<void>((resolve, reject) => {
         let resolved = false;
         
-        pythonProcess = spawn(
-          uvCmd,
-          ["run", "python", scriptPath],
+        childProcess = spawn(
+          executablePath,
+          // ["--output-dir", screenshotPath],
           {
-            cwd: scriptDir,            // so uv sees pyproject.toml
             stdio: ["inherit", "inherit", "inherit"],
           }
         );
       
-        pythonProcess.on("error", (error) => {
+        childProcess.on("error", (error) => {
           console.error("Failed to start Python script:", error);
-          pythonProcess = null;
+          childProcess = null;
           if (!resolved) {
               resolved = true;
               if (error.message.includes("Screen capture not allowed")) {
@@ -63,11 +66,11 @@ async function takeScreenshot() {
           }
         });
       
-        pythonProcess.on("exit", (code) => {
+        childProcess.on("exit", (code) => {
           console.log(`Python script exited with code ${code}`);
           
           if (code !== 0) {
-              pythonProcess = null;
+              childProcess = null;
               if (!resolved) {
                   resolved = true;
                   reject(new Error(`Python script exited with code ${code}`));
@@ -81,7 +84,7 @@ async function takeScreenshot() {
               
               if (fs.existsSync(screenshotPath)) {
                   console.log(`Screenshot saved to: ${screenshotPath}`);
-                  pythonProcess = null;
+                  childProcess = null;
                   resolved = true;
                   resolve();
               } else {
@@ -96,7 +99,7 @@ async function takeScreenshot() {
           // Timeout after 1 seconds
           setTimeout(() => {
               if (!resolved) {
-                  pythonProcess = null;
+                  childProcess = null;
                   resolved = true;
                   reject(new Error("Timeout waiting for screenshot file to be created"));
               }
@@ -132,10 +135,10 @@ export async function inferActions() {
     `
     
 
-    if (pythonProcess !== null) {
+    if (childProcess !== null) {
         // stop existing process (recording)
-        pythonProcess.kill();
-        pythonProcess = null;
+        childProcess.kill();
+        childProcess = null;
     } 
 
     await takeScreenshot();

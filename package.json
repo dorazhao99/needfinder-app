@@ -14,6 +14,27 @@
         "filter": [
           "MicWatcher"
         ]
+      }, 
+      {
+        "from": "assets/ocr/",
+        "to": "ocr",
+        "filter": [
+          "ocr_check.py"
+        ]
+      }, 
+      {
+        "from": "assets/macos/",
+        "to": "screenshot",
+        "filter": [
+          "screenshot.py"
+        ]
+      },
+      {
+        "from": "assets/macos/",
+        "to": "record",
+        "filter": [
+          "record.py"
+        ]
       }
     ]
   },
