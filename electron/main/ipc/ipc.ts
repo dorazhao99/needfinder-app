@@ -311,7 +311,6 @@ ipcMain.handle("process-insights", async (_, user_name: string) => {
   try {
     console.log("Starting preprocessing");
     const user = getUser();
-    console.log("User:", user);
     let file_dir = user?.file_dir || DEFAULT_FILE_DIR; 
     // Expand ~ to absolute path if present
     if (file_dir.startsWith('~')) {
