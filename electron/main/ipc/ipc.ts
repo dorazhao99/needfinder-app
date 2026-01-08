@@ -7,7 +7,10 @@ import { isScreenRecordingAllowed } from '../index'
 import { callMCPAgent } from '../services/agent'
 import { callLLM } from '../services/llm'
 import { setRecordingState } from '../index';
+import { startPreprocess } from '../services/preprocessFiles';
 import { fileURLToPath } from 'node:url'
+import { getUser } from './db';
+import { DEFAULT_FILE_DIR } from '../consts';
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -306,10 +309,28 @@ ipcMain.handle("call-llm", async (_, message: string, model: string) => {
 
 ipcMain.handle("process-insights", async (_, user_name: string) => {
   try {
-    const resp = await processInsights(user_name);
+    console.log("Starting preprocessing");
+    const user = getUser();
+    console.log("User:", user);
+    let file_dir = user?.file_dir || DEFAULT_FILE_DIR; 
+    // Expand ~ to absolute path if present
+    if (file_dir.startsWith('~')) {
+      file_dir = path.join(os.homedir(), file_dir.slice(1));
+    }
+    console.log("File dir:", file_dir);
+    await startPreprocess(file_dir);
+    // Notify frontend that preprocessing is complete
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send("preprocess-complete");
+    }
+    const resp = await processInsights(file_dir, user_name);
     return resp;
   } catch (error: any) {
     console.error("Error processing insights:", error);
+    // Notify frontend of preprocessing error
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send("preprocess-error", error.message);
+    }
     return {
       success: false,
       error: error.message

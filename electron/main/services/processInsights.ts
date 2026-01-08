@@ -10,6 +10,7 @@ import { TRANSCRIPTION_PROMPT, SUMMARY_PROMPT, formatObservationPrompt, formatIn
 import { WINDOW_SIZE, CONTEXT_SIZE, SESSION_GAP, MODEL_SELECTION, DEV_MODEL_SELECTION } from '../consts';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { parseModelJson } from './jsonParse';
+import { startPreprocess } from './preprocessFiles';
 
 dotenv.config();
 
@@ -23,7 +24,6 @@ const OBSERVATION_SCHEMA = z.object({
     confidence: z.number(),
   })),
 });
-
 
 
 const getImages = (files: string[], file_dir: string) => {
@@ -43,9 +43,8 @@ const getImages = (files: string[], file_dir: string) => {
   }).filter(img => img !== null);
 }
 
-const splitDays = async() => {
+const splitDays = async(file_dir: string) => {
     const files_by_days: { [key: string]: string[] } = {};
-    const file_dir = path.join(process.env.HOME || '', '.cache', 'recordr');
     console.log("file_dir: ", file_dir);
     const file_names = fs.readdirSync(file_dir);
     const files_with_stats = file_names.map(name => ({
@@ -68,9 +67,8 @@ const splitDays = async() => {
     return files_by_days;
 }
 
-const processTraces = async(sorted_files: string[]) => {
+const processTraces = async(sorted_files: string[], file_dir: string) => {
     // process all of the files in the session
-    const file_dir = path.join(process.env.HOME || '', '.cache', 'recordr');
     const sessions = [];
 
     let lastFile = fs.statSync(path.join(file_dir, sorted_files[0])).mtime;
@@ -243,9 +241,9 @@ const saveMetaInsightsDB = (db: betterSqlite3.Database, insights: { insights: { 
 }
 
 
-export const processInsights = async(user_name: string) => {
+export const processInsights = async(file_dir: string, user_name: string) => {
     // process insights for each day
-    const files_by_days = await splitDays();
+    const files_by_days = await splitDays(file_dir);
     const session_num = Object.keys(files_by_days).length;
     const dbPath = path.join(app.getPath('userData'), 'app.db');
     const db = new betterSqlite3(dbPath);
@@ -264,7 +262,7 @@ export const processInsights = async(user_name: string) => {
         const all_insights = [];
         for (const day in files_by_days) {
             const files = files_by_days[day];
-            const interaction_traces = await processTraces(files);
+            const interaction_traces = await processTraces(files, file_dir);
             const insights = await getInsights(interaction_traces, user_name);
             all_insights.push(...insights.insights);
             saveInsightsDB(db, insights);
